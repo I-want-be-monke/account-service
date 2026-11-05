@@ -1,0 +1,14 @@
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Лицевой счёт</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
+<nav><a th:href="${isClient} ? @{/my/accounts} : @{/accounts}">К списку счетов</a> <a th:href="@{/}">Главная</a></nav>
+<h1>Лицевой счёт <span th:text="${account.accountNumber}"></span></h1>
+<p class="notice" th:if="${param.created}">Счёт открыт.</p><p class="notice" th:if="${param.updated}">Состояние счёта изменено.</p>
+<dl><dt>Клиент</dt><dd th:text="${account.clientName}"></dd><dt>Статус</dt><dd th:text="${account.status == 'OPEN' ? 'Открыт' : (account.status == 'SUSPENDED' ? 'Приостановлен' : 'Закрыт')}"></dd>
+<dt>Дата открытия</dt><dd th:text="${account.openedOn}"></dd><dt>Дата закрытия</dt><dd th:text="${account.closedOn == null ? 'Не закрыт' : account.closedOn}"></dd>
+<dt>Начало истории</dt><dd th:text="${account.historyStartOn}"></dd><dt>Валюта</dt><dd th:text="${account.currency}"></dd>
+<dt>Входящее сальдо, ₽</dt><dd th:text="${account.openingBalance}"></dd><dt>Текущее сальдо, ₽</dt><dd th:text="${account.currentBalance}"></dd></dl>
+<p th:if="${isOperator and account.status != 'CLOSED'}"><a th:href="@{/accounts/{id}/status(id=${account.id})}">Изменить статус</a></p>
+<h2>История состояний</h2><div class="table-wrap"><table><thead><tr><th>Время</th><th>Было</th><th>Стало</th><th>Причина</th></tr></thead><tbody>
+<tr th:each="item : ${history.content}"><td th:text="${item.changedAt}"></td><td th:text="${item.oldStatus == null ? 'Новый счёт' : item.oldStatus}"></td><td th:text="${item.newStatus}"></td><td th:text="${item.reason}"></td></tr>
+<tr th:if="${history.empty}"><td colspan="4">Записи отсутствуют.</td></tr></tbody></table></div>
+<div class="pager"><a th:if="${history.hasPrevious()}" th:href="@{/accounts/{id}(id=${account.id},page=${history.number - 1})}">Назад</a><span th:text="|Страница ${history.number + 1} из ${history.totalPages == 0 ? 1 : history.totalPages}|"></span><a th:if="${history.hasNext()}" th:href="@{/accounts/{id}(id=${account.id},page=${history.number + 1})}">Далее</a></div>
+</main></body></html>

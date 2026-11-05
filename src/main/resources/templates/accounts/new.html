@@ -1,0 +1,10 @@
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Открыть счёт</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
+<nav><a th:href="@{/clients/{id}(id=${client.id})}">К карточке клиента</a></nav><h1>Открыть лицевой счёт</h1>
+<p>Клиент: <strong th:text="${client.displayName}"></strong></p><p class="alert" th:if="${formError}" th:text="${formError}"></p>
+<p th:if="${client.status == 'ARCHIVED'}" class="alert">Сначала восстановите клиента из архива.</p>
+<form th:if="${client.status == 'ACTIVE'}" method="post" th:action="@{/clients/{id}/accounts/new(id=${client.id})}">
+<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+<input type="hidden" name="openingId" th:value="${openingId}">
+<label>Дата открытия<input type="date" name="openedOn" th:value="${openedOn}" required></label>
+<p class="hint">Номер счёта присвоит сервер. Новое сальдо — 0,00 ₽. Повторная отправка этой формы не создаёт второй счёт.</p>
+<button type="submit">Открыть счет</button></form></main></body></html>

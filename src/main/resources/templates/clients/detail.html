@@ -6,5 +6,7 @@
 <dt>Электронная почта</dt><dd th:text="${client.email == null ? 'Не указана' : client.email}"></dd>
 <dt>Статус</dt><dd th:text="${client.status == 'ACTIVE' ? 'Активен' : 'Архив'}"></dd>
 <dt>Версия</dt><dd th:text="${client.version}"></dd></dl>
+<p><a th:href="@{/accounts(clientId=${client.id})}">Счета клиента</a></p>
+<p th:if="${isOperator}"><a th:href="@{/clients/{id}/accounts/new(id=${client.id})}">Открыть счет</a></p>
 <p th:if="${isOperator}"><a th:if="${client.status == 'ACTIVE'}" th:href="@{/clients/{id}/edit(id=${client.id})}">Изменить данные</a> <a th:href="@{/clients/{id}/status(id=${client.id})}">Изменить статус</a></p>
 </main></body></html>

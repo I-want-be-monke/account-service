@@ -34,7 +34,8 @@ public class GlobalExceptionHandler {
     public ModelAndView conflict(Exception ex, HttpServletRequest request) {
         log.warn("Data conflict; requestId={}", RequestIdFilter.id(request), ex);
         if (request.getMethod().equals("POST") && (request.getRequestURI().startsWith("/admin/users")
-            || request.getRequestURI().startsWith("/clients/")))
+            || request.getRequestURI().startsWith("/clients/")
+            || request.getRequestURI().startsWith("/accounts/")))
             denied(request, "DATA_CONFLICT");
         return page(HttpStatus.CONFLICT, "Запись уже существует или была изменена. Обновите страницу.", request);
     }

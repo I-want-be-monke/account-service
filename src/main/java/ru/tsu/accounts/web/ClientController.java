@@ -43,11 +43,13 @@ public class ClientController {
                        @RequestParam(defaultValue = "") String type,
                        @RequestParam(defaultValue = "") String identifier,
                        @RequestParam(defaultValue = "") String status,
+                       @RequestParam(defaultValue = "") String accountNumber,
                        @RequestParam(defaultValue = "0") int page,
                        @AuthenticationPrincipal AccountPrincipal actor, Model model) {
-        model.addAttribute("clients", clients.search(name, type, identifier, status, page));
+        model.addAttribute("clients", clients.search(name, type, identifier, status, accountNumber, page));
         model.addAttribute("name", name); model.addAttribute("type", type);
         model.addAttribute("identifier", identifier); model.addAttribute("status", status);
+        model.addAttribute("accountNumber", accountNumber);
         model.addAttribute("isOperator", actor.role().equals("OPERATOR"));
         return "clients/list";
     }

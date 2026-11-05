@@ -8,8 +8,10 @@
   <nav><a th:if="${role == 'ADMIN'}" th:href="@{/admin/users}">Пользователи</a>
     <a th:if="${role == 'ADMIN' or role == 'MANAGER'}" th:href="@{/audit}">Журнал действий</a>
     <a th:if="${role != 'CLIENT'}" th:href="@{/clients}">Клиенты</a>
-    <a th:if="${role == 'CLIENT'}" th:href="@{/me/client}">Моя карточка</a></nav>
-  <p>Раздел лицевых счетов появится на следующем этапе.</p>
+    <a th:if="${role == 'CLIENT'}" th:href="@{/me/client}">Моя карточка</a>
+    <a th:if="${role == 'CLIENT'}" th:href="@{/my/accounts}">Мои счета</a>
+    <a th:if="${role != 'CLIENT'}" th:href="@{/accounts}">Счета</a></nav>
+  <p>Сейчас доступно открытие и сопровождение лицевых счетов. Денежные операции появятся на следующем этапе.</p>
   <form method="post" th:action="@{/logout}">
     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
     <button type="submit">Выйти</button>

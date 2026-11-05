@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.tsu.accounts.audit.AuditEntry;
 import ru.tsu.accounts.audit.AuditService;
+import ru.tsu.accounts.account.AccountRepository;
 import ru.tsu.accounts.identity.AppUserRepository;
 import ru.tsu.accounts.identity.UserCommandException;
 import ru.tsu.accounts.security.AccountPrincipal;
@@ -29,14 +30,23 @@ public class ClientService {
     private final ClientRepository clients;
     private final AppUserRepository users;
     private final AuditService audit;
+    private final AccountRepository accounts;
 
-    public ClientService(ClientRepository clients, AppUserRepository users, AuditService audit) {
-        this.clients = clients; this.users = users; this.audit = audit;
+    public ClientService(ClientRepository clients, AppUserRepository users, AuditService audit,
+                         AccountRepository accounts) {
+        this.clients = clients; this.users = users; this.audit = audit; this.accounts = accounts;
     }
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR','ACCOUNTANT','MANAGER')")
     public Page<ClientSummary> search(String name, String type, String identifier, String status, int page) {
+        return search(name, type, identifier, status, "", page);
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMIN','OPERATOR','ACCOUNTANT','MANAGER')")
+    public Page<ClientSummary> search(String name, String type, String identifier,
+                                      String status, String accountNumber, int page) {
         String query = text(name);
         if (query.length() > 200 || query.contains("%") || query.contains("_"))
             throw bad("Некорректное имя для поиска.");
@@ -45,8 +55,11 @@ public class ClientService {
         if (!chosenType.isEmpty() && !TYPES.contains(chosenType)) throw bad("Неизвестный тип клиента.");
         if (!chosenStatus.isEmpty() && !STATUSES.contains(chosenStatus)) throw bad("Неизвестный статус.");
         if (page < 0 || page > 100000) throw bad("Некорректный номер страницы.");
+        String number = text(accountNumber);
+        if (number.length() > 32 || number.contains("%") || number.contains("_"))
+            throw bad("Некорректный номер счета.");
         return clients.search(query.toLowerCase(java.util.Locale.ROOT), chosenType,
-            key(text(identifier)), chosenStatus,
+            key(text(identifier)), chosenStatus, number,
             PageRequest.of(page, 20, Sort.by(Sort.Direction.ASC, "displayName").and(Sort.by("id"))))
             .map(ClientSummary::from);
     }
@@ -102,6 +115,8 @@ public class ClientService {
         if (!Objects.equals(client.getVersion(), version)) throw conflict("Карточка изменена. Обновите страницу.");
         if (target == null || !STATUSES.contains(target) || target.equals(client.getStatus())) throw bad("Выберите другой статус.");
         if (text(reason).isEmpty() || text(reason).length() > 500) throw bad("Укажите причину (до 500 символов).");
+        if ("ARCHIVED".equals(target) && accounts.existsByClientIdAndStatusNot(id, "CLOSED"))
+            throw conflict("Архивировать клиента можно только после закрытия всех счетов.");
         return ClientSummary.from(client);
     }
 
@@ -109,10 +124,16 @@ public class ClientService {
     @PreAuthorize("hasRole('OPERATOR')")
     public ClientSummary changeStatus(UUID id, long version, String target, String reason,
                                       UUID actor, String login, UUID requestId) {
-        validateStatus(id, version, target, reason);
-        Client client = required(id);
+        Client client = clients.lockById(id).orElseThrow(() ->
+            new UserCommandException(HttpStatus.NOT_FOUND, "CLIENT_NOT_FOUND", "Клиент не найден."));
+        if (!Objects.equals(client.getVersion(), version)) throw conflict("Карточка изменена. Обновите страницу.");
+        if (target == null || !STATUSES.contains(target) || target.equals(client.getStatus()))
+            throw bad("Выберите другой статус.");
+        if (text(reason).isEmpty() || text(reason).length() > 500)
+            throw bad("Укажите причину (до 500 символов).");
+        if ("ARCHIVED".equals(target) && accounts.existsByClientIdAndStatusNot(id, "CLOSED"))
+            throw conflict("Архивировать клиента можно только после закрытия всех счетов.");
         Map<String, ?> before = snapshot(client);
-        // The open-account archive guard is added with the account table in E4.
         client.changeStatus(target);
         clients.flush();
         audit.recordCriticalSuccess(event(actor, login, "CLIENT_STATUS_CHANGED", client, before,

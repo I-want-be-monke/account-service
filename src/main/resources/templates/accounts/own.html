@@ -1,0 +1,6 @@
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Мои лицевые счета</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide"><nav><a th:href="@{/}">Главная</a> <a th:href="@{/me/client}">Моя карточка</a></nav><h1>Мои лицевые счета</h1>
+<div class="table-wrap"><table><thead><tr><th>Номер</th><th>Статус</th><th>Дата открытия</th><th>Сальдо, ₽</th></tr></thead><tbody>
+<tr th:each="a : ${accounts.content}"><td><a th:href="@{/accounts/{id}(id=${a.id})}" th:text="${a.accountNumber}"></a></td><td th:text="${a.status == 'OPEN' ? 'Открыт' : (a.status == 'SUSPENDED' ? 'Приостановлен' : 'Закрыт')}"></td><td th:text="${a.openedOn}"></td><td th:text="${a.currentBalance}"></td></tr>
+<tr th:if="${accounts.empty}"><td colspan="4">У вас пока нет лицевых счетов.</td></tr></tbody></table></div>
+<div class="pager"><a th:if="${accounts.hasPrevious()}" th:href="@{/my/accounts(page=${accounts.number - 1})}">Назад</a><span th:text="|Страница ${accounts.number + 1} из ${accounts.totalPages == 0 ? 1 : accounts.totalPages}|"></span><a th:if="${accounts.hasNext()}" th:href="@{/my/accounts(page=${accounts.number + 1})}">Далее</a></div>
+</main></body></html>

@@ -1,0 +1,12 @@
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Состояние счёта</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
+<nav><a th:href="@{/accounts/{id}(id=${account.id})}">К счету</a></nav><h1>Смена состояния</h1><p>Номер: <strong th:text="${account.accountNumber}"></strong></p>
+<p>Текущее сальдо: <strong th:text="${account.currentBalance}"></strong> ₽</p>
+<p class="alert" th:if="${formError}" th:text="${formError}"></p>
+<form method="post" th:action="@{/accounts/{id}/status(id=${account.id})}"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input type="hidden" name="version" th:value="${account.version}">
+<label>Новый статус<select name="status" required><option value="">Выберите действие</option>
+<option th:if="${account.status == 'OPEN'}" value="SUSPENDED">Приостановить</option>
+<option th:if="${account.status == 'SUSPENDED'}" value="OPEN">Возобновить</option>
+<option th:if="${account.status != 'CLOSED'}" value="CLOSED">Закрыть</option></select></label>
+<label>Причина<input name="reason" maxlength="500" required></label>
+<p class="hint">Закрытие возможно только при нулевом сальдо. Закрытый счёт нельзя открыть повторно.</p>
+<button type="submit">Продолжить</button></form></main></body></html>
