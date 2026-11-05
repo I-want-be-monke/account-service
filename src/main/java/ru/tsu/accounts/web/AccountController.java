@@ -53,6 +53,8 @@ public class AccountController {
         model.addAttribute("account", accounts.get(id));
         model.addAttribute("history", accounts.history(id, page));
         model.addAttribute("isOperator", actor.role().equals("OPERATOR"));
+        model.addAttribute("isAccountant", actor.role().equals("ACCOUNTANT"));
+        model.addAttribute("canReadOperations", !actor.role().equals("ADMIN"));
         model.addAttribute("isClient", actor.role().equals("CLIENT"));
         return "accounts/detail";
     }

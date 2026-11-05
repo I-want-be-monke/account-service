@@ -22,6 +22,7 @@ import ru.tsu.accounts.client.Client;
 import ru.tsu.accounts.client.ClientRepository;
 import ru.tsu.accounts.identity.AppUserRepository;
 import ru.tsu.accounts.identity.UserCommandException;
+import ru.tsu.accounts.operation.OperationRepository;
 import ru.tsu.accounts.security.AccountPrincipal;
 
 @Service
@@ -33,13 +34,14 @@ public class AccountService {
     private final ClientRepository clients;
     private final AppUserRepository users;
     private final JdbcTemplate jdbc;
+    private final OperationRepository operations;
     private final AuditService audit;
 
     public AccountService(AccountRepository accounts, AccountHistoryRepository history,
                           ClientRepository clients, AppUserRepository users,
-                          JdbcTemplate jdbc, AuditService audit) {
+                          JdbcTemplate jdbc, AuditService audit, OperationRepository operations) {
         this.accounts = accounts; this.history = history; this.clients = clients;
-        this.users = users; this.jdbc = jdbc; this.audit = audit;
+        this.users = users; this.jdbc = jdbc; this.audit = audit; this.operations = operations;
     }
 
     @Transactional(readOnly = true)
@@ -136,7 +138,8 @@ public class AccountService {
             throw bad("Укажите причину изменения (до 500 символов).");
         if ("CLOSED".equals(target) && account.getCurrentBalance().compareTo(BigDecimal.ZERO) != 0)
             throw conflict("Закрыть счет можно только при нулевом сальдо.");
-        // Draft check is introduced with financial_operation in E5.
+        if ("CLOSED".equals(target) && operations.existsByAccountIdAndStorageStatus(account.getId(), "PREPARED"))
+            throw conflict("Сначала проведите или отбросьте все черновики по счету.");
     }
 
     private PersonalAccount accessible(UUID id) {

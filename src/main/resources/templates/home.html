@@ -11,7 +11,7 @@
     <a th:if="${role == 'CLIENT'}" th:href="@{/me/client}">Моя карточка</a>
     <a th:if="${role == 'CLIENT'}" th:href="@{/my/accounts}">Мои счета</a>
     <a th:if="${role != 'CLIENT'}" th:href="@{/accounts}">Счета</a></nav>
-  <p>Сейчас доступно открытие и сопровождение лицевых счетов. Денежные операции появятся на следующем этапе.</p>
+  <p>Начисления и платежи проводятся бухгалтером после проверки черновика; сальдо обновляется при проведении. Корректировки будут добавлены на следующем этапе.</p>
   <form method="post" th:action="@{/logout}">
     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
     <button type="submit">Выйти</button>

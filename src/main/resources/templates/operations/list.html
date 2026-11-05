@@ -1,0 +1,13 @@
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Движения счета</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
+<nav><a th:href="@{/accounts/{id}(id=${account.id})}">К счету</a> <a th:href="@{/}">Главная</a></nav><h1>Операции по счету <span th:text="${account.accountNumber}"></span></h1>
+<p>Текущее сальдо, ₽: <strong th:text="${account.currentBalance}"></strong>. Положительное значение — долг, отрицательное — аванс.</p>
+<p class="notice" th:if="${param.discarded}">Черновик отброшен.</p>
+<p th:if="${isAccountant and account.status == 'OPEN'}"><a th:href="@{/accounts/{id}/operations/new(id=${account.id},kind='CHARGE')}">Новое начисление</a> · <a th:href="@{/accounts/{id}/operations/new(id=${account.id},kind='PAYMENT')}">Зарегистрировать платеж</a></p>
+<h2>Проведенные операции</h2><div class="table-wrap"><table><thead><tr><th>Дата</th><th>Вид</th><th>Документ</th><th>Сумма, ₽</th><th>Изменение сальдо, ₽</th><th>Подробнее</th></tr></thead><tbody>
+<tr th:each="o : ${posted.content}"><td th:text="${o.date}"></td><td th:text="${o.kind == 'CHARGE' ? 'Начисление' : 'Платеж'}"></td><td th:text="${o.documentNumber == null ? '—' : o.documentNumber}"></td><td th:text="${o.amount}"></td><td th:text="${o.delta}"></td><td><a th:href="@{/operations/{id}(id=${o.id})}">Открыть</a></td></tr>
+<tr th:if="${posted.empty}"><td colspan="6">Проведенных операций пока нет.</td></tr></tbody></table></div>
+<div class="pager"><a th:if="${posted.hasPrevious()}" th:href="@{/accounts/{id}/operations(id=${account.id},page=${posted.number - 1})}">Назад</a><span th:text="|Страница ${posted.number + 1} из ${posted.totalPages == 0 ? 1 : posted.totalPages}|"></span><a th:if="${posted.hasNext()}" th:href="@{/accounts/{id}/operations(id=${account.id},page=${posted.number + 1})}">Далее</a></div>
+<section th:if="${isAccountant}"><h2>Мои черновики</h2><div class="table-wrap"><table><thead><tr><th>Дата</th><th>Вид</th><th>Сумма, ₽</th><th>Основание</th><th>Действие</th></tr></thead><tbody>
+<tr th:each="o : ${drafts.content}"><td th:text="${o.date}"></td><td th:text="${o.kind == 'CHARGE' ? 'Начисление' : 'Платеж'}"></td><td th:text="${o.amount}"></td><td th:text="${o.basis}"></td><td><a th:href="@{/operations/{id}(id=${o.id})}">Проверить</a></td></tr>
+<tr th:if="${drafts.empty}"><td colspan="5">Черновиков нет.</td></tr></tbody></table></div></section>
+</main></body></html>

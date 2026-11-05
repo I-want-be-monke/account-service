@@ -1,0 +1,5 @@
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Отбросить черновик</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
+<nav><a th:href="@{/operations/{id}(id=${operation.id})}">Вернуться к черновику</a></nav><h1>Отбросить черновик?</h1>
+<p>Счет <strong th:text="${account.accountNumber}"></strong>; сумма, ₽: <strong th:text="${operation.amount}"></strong>; основание: <span th:text="${operation.basis}"></span>.</p>
+<p>Это действие удалит только непроведенный черновик и запишет событие в журнал. Сальдо не изменится.</p>
+<form method="post" th:action="@{/operations/{id}/discard(id=${operation.id})}"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input type="hidden" name="token" th:value="${pending.token}"><button type="submit">Подтвердить удаление черновика</button></form></main></body></html>

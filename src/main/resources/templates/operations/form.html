@@ -1,0 +1,16 @@
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Черновик операции</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
+<nav><a th:href="@{/accounts/{id}/operations(id=${account.id})}">К операциям счета</a></nav>
+<h1 th:text="${edit ? 'Редактировать черновик' : (form.kind == 'CHARGE' ? 'Новое начисление' : 'Регистрация платежа')}"></h1>
+<p>Счет: <strong th:text="${account.accountNumber}"></strong>. Сальдо, ₽: <strong th:text="${account.currentBalance}"></strong></p>
+<p class="alert" th:if="${formError}" th:text="${formError}"></p>
+<form method="post" th:action="${edit} ? @{/operations/{id}/edit(id=${operationId})} : @{/accounts/{id}/operations/new(id=${account.id})}">
+<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input type="hidden" name="kind" th:value="${form.kind}"><input type="hidden" th:if="${edit}" name="version" th:value="${form.version}">
+<label>Дата учета<input type="date" name="operationDate" required th:value="${form.operationDate}"></label>
+<label>Сумма, ₽ (два знака после запятой)<input name="amount" inputmode="decimal" required th:value="${form.amount}"></label>
+<label th:if="${form.kind == 'CHARGE'}">Расчетный месяц (первое число)<input type="date" name="periodStart" required th:value="${form.periodStart}"></label>
+<label>Основание<input name="basis" maxlength="500" required th:value="${form.basis}"></label>
+<label th:if="${form.kind == 'PAYMENT'}">Способ регистрации<select name="paymentMethod" required><option value="">Выберите</option><option value="MANUAL_TRANSFER" th:selected="${form.paymentMethod == 'MANUAL_TRANSFER'}">Ручной перевод</option><option value="CASH_REGISTRATION" th:selected="${form.paymentMethod == 'CASH_REGISTRATION'}">Регистрация наличного платежа</option></select></label>
+<label th:if="${form.kind == 'PAYMENT'}">Номер платежного документа<input name="externalNumber" maxlength="100" required th:value="${form.externalNumber}"></label>
+<label th:if="${form.kind == 'CHARGE'}">Номер расчетного документа (если есть)<input name="externalNumber" maxlength="100" th:value="${form.externalNumber}"></label>
+<p class="hint">Источник — MANUAL. Создание или сохранение черновика не меняет сальдо; проведение выполняется только после проверки на отдельной странице.</p>
+<button type="submit">Сохранить черновик</button></form></main></body></html>

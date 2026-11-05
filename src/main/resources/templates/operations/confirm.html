@@ -1,0 +1,9 @@
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Подтвердить проведение</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
+<nav><a th:href="@{/operations/{id}(id=${operation.id})}">Отменить</a></nav><h1>Проверка перед проведением</h1>
+<p>Счет: <strong th:text="${account.accountNumber}"></strong></p>
+<dl><dt>Вид</dt><dd th:text="${operation.kind == 'CHARGE' ? 'Начисление' : 'Платеж'}"></dd><dt>Сумма, ₽</dt><dd th:text="${operation.amount}"></dd><dt>Изменение сальдо, ₽</dt><dd th:text="${operation.delta}"></dd>
+<dt>Дата</dt><dd th:text="${operation.date}"></dd><dt>Основание</dt><dd th:text="${operation.basis}"></dd><dt>Номер документа</dt><dd th:text="${operation.documentNumber == null ? 'Не указан' : operation.documentNumber}"></dd>
+<dt>Текущее сальдо, ₽</dt><dd th:text="${account.currentBalance}"></dd></dl>
+<p class="hint">Перед записью сервер повторно проверит права, счет, данные черновика и номер документа. Повторная отправка одного подтверждения не создаст второй эффект.</p>
+<form method="post" th:action="@{/operations/{id}/confirm(id=${operation.id})}"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input type="hidden" name="token" th:value="${pending.token}"><button type="submit">Подтвердить проведение</button></form>
+</main></body></html>

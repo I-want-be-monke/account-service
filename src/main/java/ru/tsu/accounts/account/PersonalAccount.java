@@ -46,6 +46,10 @@ public class PersonalAccount {
         this.closedOn = status.equals("CLOSED") ? date : null;
         this.updatedAt = Instant.now();
     }
+    public void applyPostedBalance(BigDecimal nextBalance) {
+        this.currentBalance = nextBalance;
+        this.updatedAt = Instant.now();
+    }
     public UUID getId() { return id; }
     public String getAccountNumber() { return accountNumber; }
     public UUID getClientId() { return clientId; }
