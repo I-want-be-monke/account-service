@@ -59,6 +59,7 @@ class OperationPostingIT {
   p.add("account.demo.passwords.client",()->"client-password-for-e1");
  }
  @Autowired OperationService drafts;
+ @Autowired CorrectionService corrections;
  @Autowired OperationPostingService posting;
  @SpyBean AccountRepository accountRepository;
  @Autowired ClientService clients;
@@ -121,7 +122,7 @@ class OperationPostingIT {
     +" from personal_account a where a.id=?",java.math.BigDecimal.class,id);
    assertThat(difference).isEqualByComparingTo("0");
   }
-  assertThat(jdbc.queryForObject("select count(*) from flyway_schema_history where success",Integer.class)).isEqualTo(4);
+  assertThat(jdbc.queryForObject("select count(*) from flyway_schema_history where success",Integer.class)).isEqualTo(5);
  }
  @Test void replayFingerprintDocumentGlobalAndImmutablePostedRow(){
   var a=account();var b=account();
@@ -363,5 +364,135 @@ class OperationPostingIT {
   assertThat(denied).doesNotContain(foreignAccount.accountNumber()).doesNotContain("123.00");
   mvc.perform(get("/operations/"+foreign.id()).secure(true).with(authentication(auth("demo-admin"))))
    .andExpect(status().isForbidden());
+ }
+ private CorrectionForm correctionForm(String target,String reason){
+  var form=new CorrectionForm();form.setTargetAmount(target);form.setReason(reason);
+  form.setBasis("Исправление по документу");return form;
+ }
+ private OperationSummary correction(UUID source,String target){
+  as("demo-accountant");var actor=principal("demo-accountant");
+  return corrections.prepare(source,correctionForm(target,"Уточнение суммы"),actor.id(),
+   actor.username(),UUID.randomUUID());
+ }
+ @Test void correctionChainKeepsOriginalRowsAndReconcilesBalance(){
+  var a=account();
+  var charge=posted(draft(a.id(),"CHARGE","1000",null),UUID.randomUUID());
+  var payment=posted(draft(a.id(),"PAYMENT","400","p-"+UUID.randomUUID()),UUID.randomUUID());
+  var c1=posted(correction(charge.id(),"900"),UUID.randomUUID());
+  assertThat(c1.delta()).isEqualByComparingTo("-100.00");
+  var p1=posted(correction(payment.id(),"350"),UUID.randomUUID());
+  assertThat(p1.delta()).isEqualByComparingTo("50.00");
+  assertThat(balance(a.id())).isEqualTo("550.00");
+  var c2=posted(correction(charge.id(),"800"),UUID.randomUUID());
+  assertThat(c2.delta()).isEqualByComparingTo("-100.00");
+  assertThat(balance(a.id())).isEqualTo("450.00");
+  assertThat(drafts.get(charge.id()).status()).isEqualTo("CORRECTED");
+  assertThat(drafts.get(payment.id()).status()).isEqualTo("CORRECTED");
+  assertThat(jdbc.queryForObject("select amount::text from financial_operation where id=?",String.class,charge.id()))
+   .isEqualTo("1000.00");
+  assertThat(jdbc.queryForObject("select amount::text from financial_operation where id=?",String.class,payment.id()))
+   .isEqualTo("400.00");
+  var zero=posted(correction(charge.id(),"0"),UUID.randomUUID());
+  assertThat(zero.delta()).isEqualByComparingTo("-800.00");
+  assertThat(balance(a.id())).isEqualTo("-350.00");
+  assertThat(jdbc.queryForObject("select count(*) from financial_operation where corrects_operation_id=? and storage_status='POSTED'",
+   Integer.class,charge.id())).isEqualTo(3);
+  assertThat(jdbc.queryForObject("select current_balance-opening_balance-coalesce((select sum(delta) from financial_operation o where o.account_id=a.id and o.storage_status='POSTED'),0) from personal_account a where a.id=?",
+   java.math.BigDecimal.class,a.id())).isEqualByComparingTo("0");
+  assertThat(jdbc.queryForObject("select count(*) from audit_event where action='OPERATION_CORRECTION_POSTED' and object_id=?",
+   Integer.class,c1.id().toString())).isEqualTo(1);
+  assertThat(corrections.postedFor(charge.id())).hasSize(3);
+ }
+ @Test void staleDraftAndInvalidSourceNeverChangeBalance(){
+  var a=account();var original=posted(draft(a.id(),"CHARGE","1000",null),UUID.randomUUID());
+  var older=correction(original.id(),"900");
+  var newer=correction(original.id(),"800");
+  posted(older,UUID.randomUUID());
+  assertThatThrownBy(()->posted(newer,UUID.randomUUID()))
+   .isInstanceOf(UserCommandException.class).hasMessageContaining("устарело");
+  assertThat(balance(a.id())).isEqualTo("900.00");
+  assertThat(jdbc.queryForObject("select storage_status from financial_operation where id=?",String.class,newer.id()))
+   .isEqualTo("PREPARED");
+  assertThatThrownBy(()->correction(original.id(),"900")).isInstanceOf(UserCommandException.class);
+  assertThatThrownBy(()->correction(older.id(),"700")).isInstanceOf(UserCommandException.class);
+  assertThatThrownBy(()->correction(newer.id(),"700")).isInstanceOf(UserCommandException.class);
+  var actor=principal("demo-accountant");
+  assertThatThrownBy(()->corrections.prepare(original.id(),correctionForm("-1","причина"),actor.id(),
+    actor.username(),UUID.randomUUID())).isInstanceOf(UserCommandException.class);
+  assertThatThrownBy(()->corrections.prepare(original.id(),correctionForm("700"," "),actor.id(),
+    actor.username(),UUID.randomUUID())).isInstanceOf(UserCommandException.class);
+  assertThat(balance(a.id())).isEqualTo("900.00");
+ }
+ @Test void editingStaleCorrectionRefreshesItsExpectedEffect(){
+  var a=account();var original=posted(draft(a.id(),"CHARGE","1000",null),UUID.randomUUID());
+  var first=correction(original.id(),"900");
+  var old=correction(original.id(),"800");
+  posted(first,UUID.randomUUID());
+  as("demo-accountant");var actor=principal("demo-accountant");
+  var form=correctionForm("800","Новая проверка суммы");
+  form.setVersion(old.version());
+  var refreshed=corrections.edit(old.id(),form,actor.id(),actor.username(),UUID.randomUUID());
+  assertThat(refreshed.delta()).isEqualByComparingTo("-100.00");
+  assertThat(posted(refreshed,UUID.randomUUID()).delta()).isEqualByComparingTo("-100.00");
+  assertThat(balance(a.id())).isEqualTo("800.00");
+  assertThat(jdbc.queryForObject("select expected_correction_count from financial_operation where id=?",
+   Long.class,old.id())).isEqualTo(1L);
+  assertThat(jdbc.queryForObject("select count(*) from audit_event where action='OPERATION_CORRECTION_UPDATED' and object_id=?",
+   Integer.class,old.id().toString())).isEqualTo(1);
+ }
+ @Test void correctionRequiresAccountantCsrfConfirmationAndOwnership() throws Exception {
+  var a=account();var source=posted(draft(a.id(),"CHARGE","40",null),UUID.randomUUID());
+  mvc.perform(get("/operations/"+source.id()+"/corrections/new").secure(true)
+   .with(authentication(auth("demo-accountant")))).andExpect(status().isOk());
+  mvc.perform(get("/operations/"+source.id()+"/corrections/new").secure(true)
+   .with(authentication(auth("demo-operator")))).andExpect(status().isForbidden());
+  mvc.perform(get("/operations/"+source.id()+"/corrections/new").secure(true)
+   .with(authentication(auth("demo-admin")))).andExpect(status().isForbidden());
+  mvc.perform(post("/operations/"+source.id()+"/corrections/new").secure(true)
+   .with(authentication(auth("demo-accountant"))).param("targetAmount","30")
+   .param("reason","Уточнение").param("basis","Проверка")).andExpect(status().isForbidden());
+  var prepared=correction(source.id(),"30");
+  mvc.perform(get("/operations/"+prepared.id()).secure(true)
+   .with(authentication(auth("demo-accountant")))).andExpect(status().isOk());
+  mvc.perform(get("/operations/"+prepared.id()+"/corrections/edit").secure(true)
+   .with(authentication(auth("demo-accountant")))).andExpect(status().isOk());
+  mvc.perform(get("/operations/"+prepared.id()+"/confirm").secure(true)
+   .with(authentication(auth("demo-accountant")))).andExpect(status().isOk());
+  mvc.perform(post("/operations/"+prepared.id()+"/confirm").secure(true)
+   .with(authentication(auth("demo-accountant"))).with(csrf()).param("token","fake"))
+   .andExpect(status().isConflict());
+  mvc.perform(get("/operations/"+prepared.id()+"/corrections/edit").secure(true)
+   .with(authentication(auth("demo-operator")))).andExpect(status().isForbidden());
+  assertThat(balance(a.id())).isEqualTo("40.00");
+ }
+ @Test void failedCorrectionAuditRollsBackPostedRowAndBalance(){
+  var a=account();var source=posted(draft(a.id(),"PAYMENT","400","audit-"+UUID.randomUUID()),UUID.randomUUID());
+  var prepared=correction(source.id(),"350");
+  doAnswer(inv->{
+   AuditEntry entry=inv.getArgument(0);
+   if("OPERATION_CORRECTION_POSTED".equals(entry.action()))
+    throw new DataAccessResourceFailureException("simulated correction audit failure");
+   return inv.callRealMethod();
+  }).when(auditWriter).insert(any(AuditEntry.class));
+  assertThatThrownBy(()->posted(prepared,UUID.randomUUID())).isInstanceOf(DataAccessResourceFailureException.class);
+  assertThat(balance(a.id())).isEqualTo("-400.00");
+  assertThat(jdbc.queryForObject("select storage_status from financial_operation where id=?",
+   String.class,prepared.id())).isEqualTo("PREPARED");
+  assertThat(jdbc.queryForObject("select count(*) from audit_event where action='OPERATION_CORRECTION_POSTED' and object_id=?",
+   Integer.class,prepared.id().toString())).isZero();
+ }
+ @Test void databaseRejectsForeignAccountCorrectionAndForgedDelta(){
+  var a=account();var b=account();var source=posted(draft(a.id(),"CHARGE","100",null),UUID.randomUUID());
+  var actor=principal("demo-accountant");
+  assertThatThrownBy(()->jdbc.update(
+   "insert into financial_operation(id,account_id,kind,storage_status,operation_date,amount,effect_sign,basis,corrects_operation_id,target_amount,correction_reason,expected_correction_count,created_by) values (?,?, 'CORRECTION','PREPARED',current_date,10,-1,'Основание',?,90,'Причина',0,?)",
+   UUID.randomUUID(),b.id(),source.id(),actor.id())).isInstanceOf(DataIntegrityViolationException.class);
+  var prepared=correction(source.id(),"90");
+  assertThatThrownBy(()->jdbc.update(
+   "update financial_operation set amount=20,storage_status='POSTED',posted_by=?,posted_at=now(),idempotency_key=?,request_fingerprint=? where id=?",
+   actor.id(),UUID.randomUUID(),"a".repeat(64),prepared.id())).isInstanceOf(DataIntegrityViolationException.class);
+  assertThat(balance(a.id())).isEqualTo("100.00");
+  assertThat(jdbc.queryForObject("select storage_status from financial_operation where id=?",
+   String.class,prepared.id())).isEqualTo("PREPARED");
  }
 }

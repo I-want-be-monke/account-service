@@ -56,7 +56,7 @@ class AuthenticationIT {
     void migratesAndKeepsRolesAndUsersOnRepeatedMigration() {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM app_role", Integer.class)).isEqualTo(5);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM app_user", Integer.class)).isEqualTo(5);
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE success", Integer.class)).isEqualTo(4);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE success", Integer.class)).isEqualTo(5);
         assertThat(flyway.migrate().migrationsExecuted).isZero();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM app_user", Integer.class)).isEqualTo(5);
         String hash = jdbc.queryForObject("SELECT password_hash FROM app_user WHERE login='demo-admin'", String.class);

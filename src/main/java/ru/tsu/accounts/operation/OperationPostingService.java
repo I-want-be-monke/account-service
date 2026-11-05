@@ -45,7 +45,22 @@ public class OperationPostingService {
   if(!"OPEN".equals(account.getStatus()))throw OperationService.conflict("Счет закрыт или приостановлен.");
   if(version!=draft.getVersion()||!OperationFingerprint.of(draft).equals(expectedFingerprint))
    throw OperationService.conflict("Черновик изменен. Повторите подтверждение.");
-  MoneyRules.validate(OperationForm.from(draft),account.getHistoryStartOn());
+  if("CORRECTION".equals(draft.getKind())){
+   FinancialOperation original=operations.findById(draft.getCorrectsOperationId())
+    .orElseThrow(OperationService::missing);
+   if(!"POSTED".equals(original.getStorageStatus())||"CORRECTION".equals(original.getKind())
+      ||!original.getAccountId().equals(accountId))
+    throw OperationService.conflict("Исходная операция не подходит для исправления.");
+   CorrectionRules.validate(CorrectionForm.from(draft),account.getHistoryStartOn());
+   if(operations.postedCorrectionCount(original.getId())!=draft.getExpectedCorrectionCount())
+    throw OperationService.conflict("Исправление устарело. Создайте новый черновик.");
+   CorrectionRules.Effect expected=CorrectionRules.calculate(original.getAmount(),original.getEffectSign(),
+      operations.postedCorrectionEffect(original.getId()),
+      operations.postedCorrectionCount(original.getId()),draft.getTargetAmount());
+   if(expected.correctionCount()!=draft.getExpectedCorrectionCount()
+      ||expected.delta().compareTo(draft.getAmount().multiply(BigDecimal.valueOf(draft.getEffectSign())))!=0)
+    throw OperationService.conflict("Исправление устарело. Создайте новый черновик.");
+  }else MoneyRules.validate(OperationForm.from(draft),account.getHistoryStartOn());
   if(draft.getExternalNumberKey()!=null
    &&operations.existsByExternalSourceAndKindAndExternalNumberKeyAndStorageStatus(
     draft.getExternalSource(),draft.getKind(),draft.getExternalNumberKey(),"POSTED"))
@@ -58,11 +73,16 @@ public class OperationPostingService {
   account.applyPostedBalance(newBalance);
   accounts.flush();
   audit.recordCriticalSuccess(new ru.tsu.accounts.audit.AuditEntry(actor,login,"USER","BUSINESS",
-   "OPERATION_POSTED","OPERATION",draftId.toString(),"SUCCESS",null,requestId,
+   "CORRECTION".equals(draft.getKind())?"OPERATION_CORRECTION_POSTED":"OPERATION_POSTED",
+   "OPERATION",draftId.toString(),"SUCCESS",null,requestId,
    Map.of("status","PREPARED","balance",oldBalance.toPlainString()),
    Map.of("status","POSTED","balance",newBalance.toPlainString(),"delta",delta.toPlainString()),
-   Map.of("accountId",account.getId().toString(),"kind",draft.getKind(),
-    "document",draft.getExternalNumber()==null?"":draft.getExternalNumber())));
+   "CORRECTION".equals(draft.getKind())
+    ?Map.of("accountId",account.getId().toString(),"kind",draft.getKind(),
+      "sourceId",draft.getCorrectsOperationId().toString(),"targetAmount",draft.getTargetAmount().toPlainString(),
+      "reason",draft.getCorrectionReason())
+    :Map.of("accountId",account.getId().toString(),"kind",draft.getKind(),
+      "document",draft.getExternalNumber()==null?"":draft.getExternalNumber())));
   return OperationSummary.from(draft);
  }
  private AccountPrincipal principal(){

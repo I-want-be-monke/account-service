@@ -128,7 +128,7 @@ class AccountLifecycleIT {
         assertThat(jdbc.queryForObject("select count(*) from personal_account where id=?", Integer.class, openingId))
             .isEqualTo(1);
         assertThat(jdbc.queryForObject("select count(*) from flyway_schema_history where success", Integer.class))
-            .isEqualTo(4);
+            .isEqualTo(5);
     }
 
     @Test

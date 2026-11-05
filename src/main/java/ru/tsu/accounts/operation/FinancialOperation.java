@@ -26,6 +26,7 @@ public class FinancialOperation {
  @Column(name="corrects_operation_id") private UUID correctsOperationId;
  @Column(name="target_amount",precision=19,scale=2) private BigDecimal targetAmount;
  @Column(name="correction_reason",length=1000) private String correctionReason;
+ @Column(name="expected_correction_count") private Long expectedCorrectionCount;
  @Column(name="created_by",nullable=false,updatable=false) private UUID createdBy;
  @Column(name="created_at",insertable=false,updatable=false) private Instant createdAt;
  @Column(name="updated_at",insertable=false) private Instant updatedAt;
@@ -38,6 +39,20 @@ public class FinancialOperation {
  FinancialOperation(UUID accountId, UUID author, MoneyRules.DraftInput input) {
   id=UUID.randomUUID(); this.accountId=accountId; createdBy=author; kind=input.kind();
   storageStatus="PREPARED"; apply(input);
+ }
+ FinancialOperation(UUID accountId, UUID author, UUID originalId, CorrectionRules.Input input,
+                    CorrectionRules.Effect effect) {
+  id=UUID.randomUUID(); this.accountId=accountId; createdBy=author; kind="CORRECTION";
+  storageStatus="PREPARED"; correctsOperationId=originalId; editCorrection(input,effect);
+ }
+ void editCorrection(CorrectionRules.Input input,CorrectionRules.Effect effect) {
+  if(!"PREPARED".equals(storageStatus)||!"CORRECTION".equals(kind))
+   throw new IllegalStateException("Immutable operation");
+  operationDate=input.date(); amount=effect.delta().abs();
+  effectSign=(short)effect.delta().signum(); targetAmount=input.target();
+  correctionReason=input.reason(); expectedCorrectionCount=effect.correctionCount();
+  basis=input.basis(); periodStart=null; paymentMethod=null;
+  externalSource=null; externalNumber=null; externalNumberKey=null; updatedAt=Instant.now();
  }
  void edit(MoneyRules.DraftInput input) {
   if (!"PREPARED".equals(storageStatus) || !kind.equals(input.kind())) throw new IllegalStateException("Immutable operation");
@@ -61,6 +76,10 @@ public class FinancialOperation {
  public LocalDate getPeriodStart(){return periodStart;} public String getBasis(){return basis;}
  public String getPaymentMethod(){return paymentMethod;} public String getExternalSource(){return externalSource;}
  public String getExternalNumber(){return externalNumber;} public String getExternalNumberKey(){return externalNumberKey;}
+ public UUID getCorrectsOperationId(){return correctsOperationId;}
+ public BigDecimal getTargetAmount(){return targetAmount;}
+ public String getCorrectionReason(){return correctionReason;}
+ public Long getExpectedCorrectionCount(){return expectedCorrectionCount;}
  public UUID getCreatedBy(){return createdBy;} public Instant getCreatedAt(){return createdAt;}
  public Instant getPostedAt(){return postedAt;} public UUID getIdempotencyKey(){return idempotencyKey;}
  public String getRequestFingerprint(){return requestFingerprint;} public Long getVersion(){return version;}

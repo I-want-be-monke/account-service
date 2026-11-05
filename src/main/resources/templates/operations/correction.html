@@ -1,0 +1,14 @@
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Исправление операции</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
+<nav><a th:href="@{/operations/{id}(id=${source.id})}">← Исходная операция</a></nav><h1 th:text="${edit ? 'Изменить черновик исправления' : 'Новое исправление'}"></h1>
+<p>Счет: <strong th:text="${account.accountNumber}"></strong>. Исходная операция: <a th:href="@{/operations/{id}(id=${source.id})}" th:text="${source.kind == 'CHARGE' ? 'Начисление' : 'Платеж'}"></a>, сумма <span th:text="${source.amount}"></span> ₽.</p>
+<p>Состояние исходной операции: <span th:text="${source.status == 'CORRECTED' ? 'Исправлено' : 'Проведено'}"></span>. Каждое новое исправление задает окончательную целевую сумму исходной операции.</p>
+<p class="error" th:if="${formError}" th:text="${formError}"></p>
+<form method="post" th:action="${edit ? '/operations/' + operationId + '/corrections/edit' : '/operations/' + source.id + '/corrections/new'}">
+<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input type="hidden" name="version" th:if="${edit}" th:value="${form.version}">
+<label>Целевая исправленная сумма, ₽ <input name="targetAmount" type="text" inputmode="decimal" maxlength="20" required th:value="${form.targetAmount}" placeholder="0,00"></label>
+<label>Причина исправления <textarea name="reason" maxlength="1000" required th:text="${form.reason}"></textarea></label>
+<label>Основание <textarea name="basis" maxlength="500" required th:text="${form.basis}"></textarea></label>
+<input type="hidden" name="operationDate" th:value="${form.operationDate}">
+<p class="hint">Дата исправления — сегодня. Цель 0 аннулирует эффект исходной операции. Проведение выполняется отдельно после проверки.</p>
+<button type="submit" th:text="${edit ? 'Сохранить черновик' : 'Подготовить исправление'}"></button></form>
+</main></body></html>

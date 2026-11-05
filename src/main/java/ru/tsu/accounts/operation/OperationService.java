@@ -26,7 +26,7 @@ public class OperationService {
  @PreAuthorize("hasAnyRole('OPERATOR','ACCOUNTANT','MANAGER','CLIENT')")
  public Page<OperationSummary> history(UUID accountId,int page){
   accountAccess.get(accountId);
-  return operations.findByAccountIdAndStorageStatus(accountId,"POSTED",page(page)).map(OperationSummary::from);
+  return operations.findByAccountIdAndStorageStatus(accountId,"POSTED",page(page)).map(this::summary);
  }
  @Transactional(readOnly=true)
  @PreAuthorize("hasRole('ACCOUNTANT')")
@@ -43,18 +43,34 @@ public class OperationService {
     && (!"ACCOUNTANT".equals(principal().role())||!op.getCreatedBy().equals(principal().id())))
    throw forbidden();
   accountAccess.get(op.getAccountId());
-  return OperationSummary.from(op);
+  return summary(op);
  }
  @Transactional(readOnly=true)
  @PreAuthorize("hasRole('ACCOUNTANT')")
- public OperationForm editForm(UUID id){return OperationForm.from(ownedDraft(id));}
+ public OperationForm editForm(UUID id){
+  FinancialOperation op=ownedDraft(id);
+  if("CORRECTION".equals(op.getKind()))throw conflict("Для исправления откройте форму исправления.");
+  return OperationForm.from(op);
+ }
  @Transactional(readOnly=true)
  @PreAuthorize("hasRole('ACCOUNTANT')")
  public String readyFingerprint(UUID id){
   FinancialOperation op=ownedDraft(id);
   PersonalAccount account=accounts.findById(op.getAccountId()).orElseThrow(OperationService::missing);
   if(!"OPEN".equals(account.getStatus()))throw conflict("Проведение допускается только на открытом счете.");
-  MoneyRules.validate(OperationForm.from(op),account.getHistoryStartOn());
+  if("CORRECTION".equals(op.getKind())){
+   FinancialOperation original=operations.findById(op.getCorrectsOperationId()).orElseThrow(OperationService::missing);
+   if(!"POSTED".equals(original.getStorageStatus())||"CORRECTION".equals(original.getKind())
+      ||!original.getAccountId().equals(op.getAccountId()))throw conflict("Исходная операция недоступна.");
+   CorrectionRules.validate(CorrectionForm.from(op),account.getHistoryStartOn());
+   if(operations.postedCorrectionCount(original.getId())!=op.getExpectedCorrectionCount())
+    throw conflict("Исправление устарело. Создайте новое исправление.");
+   CorrectionRules.Effect expected=CorrectionRules.calculate(original.getAmount(),original.getEffectSign(),
+     operations.postedCorrectionEffect(original.getId()),operations.postedCorrectionCount(original.getId()),op.getTargetAmount());
+   if(expected.correctionCount()!=op.getExpectedCorrectionCount()
+       ||expected.delta().compareTo(op.getAmount().multiply(BigDecimal.valueOf(op.getEffectSign())))!=0)
+    throw conflict("Исправление устарело. Создайте новое исправление.");
+  }else MoneyRules.validate(OperationForm.from(op),account.getHistoryStartOn());
   return OperationFingerprint.of(op);
  }
  @Transactional
@@ -77,6 +93,7 @@ public class OperationService {
   PersonalAccount account=accounts.lockById(accountId).orElseThrow(OperationService::missing);
   FinancialOperation draft=operations.lockById(id).orElseThrow(OperationService::missing);
   own(draft);
+  if("CORRECTION".equals(draft.getKind()))throw conflict("Для исправления откройте форму исправления.");
   if(!"OPEN".equals(account.getStatus()))throw conflict("Счет сейчас не открыт.");
   if(form.getVersion()==null||!form.getVersion().equals(draft.getVersion()))throw conflict("Черновик изменен. Обновите страницу.");
   MoneyRules.DraftInput data=MoneyRules.validate(form,account.getHistoryStartOn());
@@ -107,6 +124,11 @@ public class OperationService {
      data.externalSource(),data.kind(),data.externalNumberKey(),"POSTED"))
    throw conflict("Документ с таким номером уже проведен.");
  }
+ private OperationSummary summary(FinancialOperation op){
+  return OperationSummary.from(op,"POSTED".equals(op.getStorageStatus())
+   &&!"CORRECTION".equals(op.getKind())
+   &&operations.existsByCorrectsOperationIdAndStorageStatus(op.getId(),"POSTED"));
+ }
  private FinancialOperation ownedDraft(UUID id){
   FinancialOperation draft=operations.findById(id).orElseThrow(OperationService::missing);
   own(draft); return draft;
@@ -129,6 +151,12 @@ public class OperationService {
   fields.put("status",op.getStorageStatus());fields.put("date",op.getOperationDate().toString());
   fields.put("amount",op.getAmount().toPlainString());fields.put("basis",op.getBasis());
   fields.put("document",op.getExternalNumber());
+  if("CORRECTION".equals(op.getKind())){
+   fields.put("sourceId",op.getCorrectsOperationId().toString());
+   fields.put("targetAmount",op.getTargetAmount().toPlainString());
+   fields.put("reason",op.getCorrectionReason());
+   fields.put("expectedCorrectionCount",op.getExpectedCorrectionCount());
+  }
   return fields;
  }
  static AuditEntry event(UUID actor,String login,String action,FinancialOperation op,UUID requestId,

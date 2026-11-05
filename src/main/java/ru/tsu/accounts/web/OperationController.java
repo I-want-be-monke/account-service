@@ -20,13 +20,14 @@ import ru.tsu.accounts.security.AccountPrincipal;
 public class OperationController {
  private static final Logger log=LoggerFactory.getLogger(OperationController.class);
  private final OperationService operations;
+ private final CorrectionService corrections;
  private final OperationPostingService posting;
  private final OperationConfirmation confirmation;
  private final AccountService accounts;
  private final AuditAttemptService attempts;
- public OperationController(OperationService operations,OperationPostingService posting,
+ public OperationController(OperationService operations,CorrectionService corrections,OperationPostingService posting,
   OperationConfirmation confirmation,AccountService accounts,AuditAttemptService attempts){
-  this.operations=operations;this.posting=posting;this.confirmation=confirmation;
+  this.operations=operations;this.corrections=corrections;this.posting=posting;this.confirmation=confirmation;
   this.accounts=accounts;this.attempts=attempts;
  }
  @GetMapping("/accounts/{id}/operations")
@@ -68,12 +69,14 @@ public class OperationController {
   var op=operations.get(id);
   model.addAttribute("operation",op);model.addAttribute("account",accounts.get(op.accountId()));
   model.addAttribute("isAccountant",actor.role().equals("ACCOUNTANT"));
+  model.addAttribute("corrections",corrections.postedFor(id));
   return "operations/detail";
  }
  @GetMapping("/operations/{id}/edit")
  @PreAuthorize("hasRole('ACCOUNTANT')")
  public String editPage(@PathVariable UUID id,Model model){
   var op=operations.get(id);
+  if("CORRECTION".equals(op.kind()))return "redirect:/operations/"+id+"/corrections/edit";
   model.addAttribute("form",operations.editForm(id));model.addAttribute("account",accounts.get(op.accountId()));
   model.addAttribute("edit",true);model.addAttribute("operationId",id);
   return "operations/form";
@@ -92,6 +95,58 @@ public class OperationController {
    model.addAttribute("account",accounts.get(operations.get(id).accountId()));
    model.addAttribute("edit",true);model.addAttribute("operationId",id);
    return "operations/form";
+  }
+ }
+ @GetMapping("/operations/{id}/corrections/new")
+ @PreAuthorize("hasRole('ACCOUNTANT')")
+ public String correctionNew(@PathVariable UUID id,Model model){
+  var source=corrections.source(id);
+  model.addAttribute("source",source);model.addAttribute("account",accounts.get(source.accountId()));
+  model.addAttribute("form",new CorrectionForm());model.addAttribute("edit",false);
+  return "operations/correction";
+ }
+ @PostMapping("/operations/{id}/corrections/new")
+ @PreAuthorize("hasRole('ACCOUNTANT')")
+ public String correctionCreate(@PathVariable UUID id,@ModelAttribute("form") CorrectionForm form,
+  @AuthenticationPrincipal AccountPrincipal actor,HttpServletRequest request,HttpServletResponse response,Model model){
+  try{
+   var draft=corrections.prepare(id,form,actor.id(),actor.username(),RequestIdFilter.id(request));
+   return "redirect:/operations/"+draft.id()+"?created";
+  }catch(UserCommandException e){
+   denial(actor,request,"OPERATION_CORRECTION_PREPARE_DENIED",id,e);
+   response.setStatus(e.status().value());
+   model.addAttribute("formError",e.getMessage());
+   var source=corrections.source(id);
+   model.addAttribute("source",source);model.addAttribute("account",accounts.get(source.accountId()));
+   model.addAttribute("edit",false);return "operations/correction";
+  }
+ }
+ @GetMapping("/operations/{id}/corrections/edit")
+ @PreAuthorize("hasRole('ACCOUNTANT')")
+ public String correctionEditPage(@PathVariable UUID id,Model model){
+  CorrectionForm form=corrections.editForm(id);
+  form.setOperationDate(java.time.LocalDate.now(java.time.ZoneId.of("Europe/Moscow")).toString());
+  var draft=operations.get(id);
+  model.addAttribute("form",form);model.addAttribute("source",corrections.source(draft.correctsOperationId()));
+  model.addAttribute("account",accounts.get(draft.accountId()));
+  model.addAttribute("edit",true);model.addAttribute("operationId",id);
+  return "operations/correction";
+ }
+ @PostMapping("/operations/{id}/corrections/edit")
+ @PreAuthorize("hasRole('ACCOUNTANT')")
+ public String correctionEdit(@PathVariable UUID id,@ModelAttribute("form") CorrectionForm form,
+  @AuthenticationPrincipal AccountPrincipal actor,HttpServletRequest request,HttpServletResponse response,Model model){
+  try{
+   corrections.edit(id,form,actor.id(),actor.username(),RequestIdFilter.id(request));
+   return "redirect:/operations/"+id+"?updated";
+  }catch(UserCommandException e){
+   denial(actor,request,"OPERATION_CORRECTION_EDIT_DENIED",id,e);
+   response.setStatus(e.status().value());
+   var draft=operations.get(id);
+   model.addAttribute("source",corrections.source(draft.correctsOperationId()));
+   model.addAttribute("account",accounts.get(draft.accountId()));
+   model.addAttribute("edit",true);model.addAttribute("operationId",id);
+   model.addAttribute("formError",e.getMessage());return "operations/correction";
   }
  }
  @GetMapping("/operations/{id}/discard")

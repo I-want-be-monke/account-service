@@ -1,12 +1,28 @@
-<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Операция</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
-<nav><a th:href="@{/accounts/{id}/operations(id=${account.id})}">К движениям счета</a></nav><h1 th:text="${operation.kind == 'CHARGE' ? 'Начисление' : 'Платеж'}"></h1>
-<p class="notice" th:if="${param.created}">Черновик сохранен. Сальдо счета не изменилось.</p><p class="notice" th:if="${param.updated}">Черновик обновлен.</p><p class="notice" th:if="${param.posted}">Операция проведена; сальдо обновлено.</p>
-<dl><dt>Счет</dt><dd th:text="${account.accountNumber}"></dd><dt>Состояние</dt><dd th:text="${operation.status == 'POSTED' ? 'Проведена' : 'Черновик'}"></dd><dt>Дата учета</dt><dd th:text="${operation.date}"></dd>
-<dt>Сумма, ₽</dt><dd th:text="${operation.amount}"></dd><dt>Изменение сальдо, ₽</dt><dd th:text="${operation.delta}"></dd><dt>Основание</dt><dd th:text="${operation.basis}"></dd>
-<dt th:if="${operation.periodStart != null}">Расчетный месяц</dt><dd th:if="${operation.periodStart != null}" th:text="${operation.periodStart}"></dd>
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Операция</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
+<nav><a th:href="@{/accounts/{id}/operations(id=${account.id})}">← Операции счета</a></nav>
+<h1 th:text="${operation.kind == 'CHARGE' ? 'Начисление' : operation.kind == 'PAYMENT' ? 'Платеж' : 'Исправление'}"></h1>
+<p class="notice" th:if="${param.created}">Черновик сохранен. Сальдо еще не изменилось.</p>
+<p class="notice" th:if="${param.updated}">Черновик обновлен.</p>
+<p class="notice" th:if="${param.posted}">Операция проведена; сальдо обновлено.</p>
+<dl><dt>Счет</dt><dd th:text="${account.accountNumber}"></dd>
+<dt>Состояние</dt><dd th:text="${operation.status == 'CORRECTED' ? 'Исправлено' : operation.status == 'POSTED' ? 'Проведено' : 'Черновик'}"></dd>
+<dt>Дата</dt><dd th:text="${operation.date}"></dd>
+<dt>Сумма движения, ₽</dt><dd th:text="${operation.amount}"></dd>
+<dt>Изменение сальдо, ₽</dt><dd th:text="${operation.delta}"></dd>
+<dt>Основание</dt><dd th:text="${operation.basis}"></dd>
+<dt th:if="${operation.periodStart != null}">Расчетный период</dt><dd th:if="${operation.periodStart != null}" th:text="${operation.periodStart}"></dd>
 <dt th:if="${operation.paymentMethod != null}">Способ платежа</dt><dd th:if="${operation.paymentMethod != null}" th:text="${operation.paymentMethod == 'MANUAL_TRANSFER' ? 'Ручной перевод' : 'Регистрация наличного платежа'}"></dd>
-<dt>Номер документа</dt><dd th:text="${operation.documentNumber == null ? 'Не указан' : operation.documentNumber}"></dd><dt>Проведена</dt><dd th:text="${operation.postedAt == null ? 'Ожидает проведения' : operation.postedAt}"></dd>
+<dt th:if="${operation.correctsOperationId != null}">Исходная операция</dt><dd th:if="${operation.correctsOperationId != null}"><a th:href="@{/operations/{id}(id=${operation.correctsOperationId})}" th:text="${operation.correctsOperationId}"></a></dd>
+<dt th:if="${operation.targetAmount != null}">Целевая сумма, ₽</dt><dd th:if="${operation.targetAmount != null}" th:text="${operation.targetAmount}"></dd>
+<dt th:if="${operation.correctionReason != null}">Причина исправления</dt><dd th:if="${operation.correctionReason != null}" th:text="${operation.correctionReason}"></dd>
+<dt>Номер документа</dt><dd th:text="${operation.documentNumber == null ? 'Не указан' : operation.documentNumber}"></dd>
+<dt>Проведено</dt><dd th:text="${operation.postedAt == null ? 'Ожидает проведения' : operation.postedAt}"></dd>
 <dt>Текущее сальдо счета, ₽</dt><dd th:text="${account.currentBalance}"></dd></dl>
 <p th:if="${isAccountant and operation.status == 'PREPARED'}"><a th:href="@{/operations/{id}/edit(id=${operation.id})}">Редактировать</a> · <a th:href="@{/operations/{id}/discard(id=${operation.id})}">Отбросить черновик</a></p>
 <p th:if="${isAccountant and operation.status == 'PREPARED' and account.status == 'OPEN'}"><a th:href="@{/operations/{id}/confirm(id=${operation.id})}">Проверить и провести</a></p>
+<p th:if="${isAccountant and operation.kind != 'CORRECTION' and (operation.status == 'POSTED' or operation.status == 'CORRECTED') and account.status == 'OPEN'}"><a th:href="@{/operations/{id}/corrections/new(id=${operation.id})}">Создать исправление</a></p>
+<section th:if="${operation.kind != 'CORRECTION' and (operation.status == 'POSTED' or operation.status == 'CORRECTED')}"><h2>Проведенные исправления</h2>
+<div class="table-wrap"><table><thead><tr><th>Дата</th><th>Целевая сумма, ₽</th><th>Изменение, ₽</th><th>Причина</th><th>Действие</th></tr></thead><tbody>
+<tr th:each="c : ${corrections}"><td th:text="${c.date}"></td><td th:text="${c.targetAmount}"></td><td th:text="${c.delta}"></td><td th:text="${c.correctionReason}"></td><td><a th:href="@{/operations/{id}(id=${c.id})}">Открыть</a></td></tr>
+<tr th:if="${#lists.isEmpty(corrections)}"><td colspan="5">Исправлений пока нет.</td></tr></tbody></table></div></section>
 </main></body></html>
