@@ -1,0 +1,11 @@
+spring:
+  thymeleaf:
+    cache: false
+account:
+  demo:
+    passwords:
+      admin: ${DEMO_ADMIN_PASSWORD}
+      operator: ${DEMO_OPERATOR_PASSWORD}
+      accountant: ${DEMO_ACCOUNTANT_PASSWORD}
+      manager: ${DEMO_MANAGER_PASSWORD}
+      client: ${DEMO_CLIENT_PASSWORD}

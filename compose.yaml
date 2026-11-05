@@ -1,0 +1,24 @@
+name: account-service
+services:
+  db:
+    image: postgres:17.11-bookworm
+    environment:
+      POSTGRES_DB: ${DB_NAME:?Run scripts/dev-up.cmd first}
+      POSTGRES_USER: ${DB_OWNER_USER:?DB_OWNER_USER required}
+      POSTGRES_PASSWORD: ${DB_OWNER_PASSWORD:?DB_OWNER_PASSWORD required}
+      ACCOUNT_DB_PASSWORD: ${DB_APP_PASSWORD:?DB_APP_PASSWORD required}
+    ports:
+      - "127.0.0.1:${DB_PORT:-55432}:5432"
+    volumes:
+      - account-data:/var/lib/postgresql/data
+      - ./docker/init-users.sql:/docker-entrypoint-initdb.d/01-users.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+    restart: unless-stopped
+    stop_grace_period: 30s
+volumes:
+  account-data:

@@ -1,0 +1,10 @@
+:root { font-family: system-ui, sans-serif; color-scheme: light; }
+body { margin: 0; background: #f5f7fa; color: #172234; }
+.card { max-width: 28rem; margin: 10vh auto; padding: 2rem; background: white; border: 1px solid #d9e0e8; border-radius: .6rem; box-shadow: 0 4px 20px #12233b12; }
+h1 { font-size: 1.45rem; margin-top: 0; }
+label { display: block; font-weight: 600; margin: 1rem 0 .35rem; }
+input { box-sizing: border-box; width: 100%; padding: .7rem; border: 1px solid #8391a4; border-radius: .3rem; font: inherit; }
+button { margin-top: 1.4rem; padding: .7rem 1.3rem; background: #174f84; border: 0; border-radius: .3rem; color: white; font: inherit; cursor: pointer; }
+button:hover { background: #103e6a; }
+.alert { color: #9b1818; } .notice { color: #176231; }
+@media (max-width: 36rem) { .card { margin: 1rem; padding: 1.2rem; } }
