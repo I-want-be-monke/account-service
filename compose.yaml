@@ -13,11 +13,57 @@ services:
       - account-data:/var/lib/postgresql/data
       - ./docker/init-users.sql:/docker-entrypoint-initdb.d/01-users.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 3s
       timeout: 3s
       retries: 30
       start_period: 10s
+    restart: unless-stopped
+    stop_grace_period: 30s
+  app:
+    profiles: [full]
+    build:
+      context: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${APP_PROFILE:-dev}
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:?DB_NAME required}
+      DB_OWNER_USER: ${DB_OWNER_USER:?DB_OWNER_USER required}
+      DB_OWNER_PASSWORD: ${DB_OWNER_PASSWORD:?DB_OWNER_PASSWORD required}
+      DB_APP_USER: ${DB_APP_USER:-account_app}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?DB_APP_PASSWORD required}
+      SERVER_ADDRESS: 0.0.0.0
+      SERVER_PORT: ${HTTPS_PORT:-8443}
+      ACCOUNT_HTTP_ADDRESS: 0.0.0.0
+      ACCOUNT_HTTP_PORT: ${HTTP_PORT:-8080}
+      TLS_KEY_STORE: file:/run/account-service/tls.p12
+      TLS_PASSWORD: ${TLS_PASSWORD:-}
+      DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD:-}
+      DEMO_OPERATOR_PASSWORD: ${DEMO_OPERATOR_PASSWORD:-}
+      DEMO_ACCOUNTANT_PASSWORD: ${DEMO_ACCOUNTANT_PASSWORD:-}
+      DEMO_MANAGER_PASSWORD: ${DEMO_MANAGER_PASSWORD:-}
+      DEMO_CLIENT_PASSWORD: ${DEMO_CLIENT_PASSWORD:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+    ports:
+      - "127.0.0.1:${HTTPS_PORT:-8443}:${HTTPS_PORT:-8443}"
+      - "127.0.0.1:${HTTP_PORT:-8080}:${HTTP_PORT:-8080}"
+    volumes:
+      - type: bind
+        source: ${APP_TLS_FILE:-./.local/dev.p12}
+        target: /run/account-service/tls.p12
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD-SHELL", "curl --noproxy '*' --cacert /tmp/account-service-readiness.pem -fsS --max-time 3 \"https://localhost:$${SERVER_PORT}/actuator/health/readiness\""]
+      interval: 5s
+      timeout: 5s
+      retries: 16
+      start_period: 15s
     restart: unless-stopped
     stop_grace_period: 30s
 volumes:

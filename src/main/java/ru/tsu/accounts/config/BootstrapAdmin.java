@@ -14,7 +14,7 @@ import ru.tsu.accounts.identity.AppUser;
 import ru.tsu.accounts.identity.AppUserRepository;
 
 @Component
-@Profile("!dev")
+@Profile("!dev & !migration")
 public class BootstrapAdmin implements ApplicationRunner {
     private final AppUserRepository users;
     private final AppRoleRepository roles;

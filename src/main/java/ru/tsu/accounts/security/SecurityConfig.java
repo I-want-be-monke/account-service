@@ -1,6 +1,8 @@
 package ru.tsu.accounts.security;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -22,11 +24,17 @@ public class SecurityConfig {
     PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(12); }
 
     @Bean
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
     SecurityFilterChain securityFilterChain(HttpSecurity http, AppUserRepository users,
                                             AuditAttemptService attempts,
                                             AuthenticationAuditHandlers authenticationHandlers,
                                             AccessAuditHandler accessHandler,
-                                            UserDetailsService userDetailsService) throws Exception {
+                                            UserDetailsService userDetailsService,
+                                            @Value("${account.http.port:8080}") int httpPort,
+                                            @Value("${server.port:8443}") int httpsPort) throws Exception {
+        if (httpPort > 0 && httpsPort > 0 && (httpPort != 8080 || httpsPort != 8443)) {
+            http.portMapper(ports -> ports.http(httpPort).mapsTo(httpsPort));
+        }
         http.userDetailsService(userDetailsService)
             .requiresChannel(channel -> channel.anyRequest().requiresSecure())
             .authorizeHttpRequests(auth -> auth

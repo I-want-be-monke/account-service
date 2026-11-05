@@ -1,0 +1,3 @@
+id;client_type;display_name;identifier_type;identifier_value;phone;email;status
+e1000000-0000-4000-8000-000000000101;PERSON;"Учебный клиент E10; ""А""";DEMO;E10-DEMO-C1;;e10-client-a@example.invalid;ACTIVE
+e1000000-0000-4000-8000-000000000102;PERSON;Учебный клиент E10 Б;DEMO;E10-DEMO-C2;;e10-client-b@example.invalid;ACTIVE

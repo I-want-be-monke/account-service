@@ -122,7 +122,8 @@ class OperationPostingIT extends ru.tsu.accounts.support.PostgresContextLifecycl
     +" from personal_account a where a.id=?",java.math.BigDecimal.class,id);
    assertThat(difference).isEqualByComparingTo("0");
   }
-  assertThat(jdbc.queryForObject("select count(*) from flyway_schema_history where success",Integer.class)).isEqualTo(5);
+  assertThat(jdbc.queryForList("select version from flyway_schema_history where success order by installed_rank",String.class))
+   .containsExactly("1", "2", "3", "4", "5", "6");
  }
  @Test void replayFingerprintDocumentGlobalAndImmutablePostedRow(){
   var a=account();var b=account();

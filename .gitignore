@@ -13,6 +13,8 @@
 *.crt
 *.cer
 *.pem
+*.dump
+*.dump.sha256
 *.log
 /.idea/
 *.iml

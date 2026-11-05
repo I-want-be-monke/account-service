@@ -1,0 +1,17 @@
+**
+!Dockerfile
+!pom.xml
+!src/
+!src/main/
+!src/main/**
+!docker/
+!docker/app-entrypoint.sh
+**/.env*
+**/*.p12
+**/*.jks
+**/*.key
+**/*.pem
+**/*.crt
+**/*.cer
+**/*.dump
+**/*.log

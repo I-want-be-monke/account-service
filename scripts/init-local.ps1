@@ -28,9 +28,14 @@ if (-not (Test-Path $cert)) {
     New-Item -ItemType Directory -Force -Path (Split-Path $cert) | Out-Null
     $keytool = 'keytool.exe'
     if ($env:JAVA_HOME) { $keytool = Join-Path $env:JAVA_HOME 'bin\keytool.exe' }
-    & $keytool -genkeypair -alias accounts-local -keyalg RSA -keysize 3072 -validity 365 `
-        -dname 'CN=localhost, OU=Dev, O=Student, C=RU' `
-        -ext 'SAN=dns:localhost,ip:127.0.0.1' -storetype PKCS12 `
-        -keystore $cert -storepass $values.TLS_PASSWORD -keypass $values.TLS_PASSWORD -noprompt
-    if ($LASTEXITCODE -ne 0) { throw 'keytool failed to create the development certificate' }
+    $env:ACCOUNT_SERVICE_KEYTOOL_PASSWORD = $values.TLS_PASSWORD
+    try {
+        & $keytool -genkeypair -alias accounts-local -keyalg RSA -keysize 3072 -validity 365 `
+            -dname 'CN=localhost, OU=Dev, O=Student, C=RU' `
+            -ext 'SAN=dns:localhost,ip:127.0.0.1' -storetype PKCS12 `
+            -keystore $cert -storepass:env ACCOUNT_SERVICE_KEYTOOL_PASSWORD -noprompt
+        if ($LASTEXITCODE -ne 0) { throw 'keytool failed to create the development certificate' }
+    } finally {
+        Remove-Item Env:ACCOUNT_SERVICE_KEYTOOL_PASSWORD -ErrorAction SilentlyContinue
+    }
 }

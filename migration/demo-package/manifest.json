@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "sourceName": "e10-demo-package",
+  "packageSha256": "709e933d4a5529818619e09703c1773acc79cc3381b9947ac6b63b9fdf9d8038",
+  "files": {
+    "clients.csv": {"rows": 2, "sha256": "e7c394b06abf40fce63a8d5189caaf8bb7fafb791abde316624a5ec394d00c53"},
+    "accounts.csv": {"rows": 3, "sha256": "cea066a18e527c6b1ad28184e6dc6ddc2fb5da10048db00945739670465218b3"},
+    "operations.csv": {"rows": 6, "sha256": "4569718cf719534e75a69aa11ff09a324fc25981c2b3d323a80f290e052ef3df"}
+  },
+  "controlBalances": {
+    "LS-0000000101": "550.00",
+    "LS-0000000102": "-300.00",
+    "LS-0000000103": "0.00"
+  },
+  "controlDebt": "550.00",
+  "controlAdvance": "300.00"
+}

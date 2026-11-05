@@ -3,10 +3,12 @@ setlocal
 cd /d "%~dp0.."
 where java.exe >nul 2>&1 || (echo JDK 21 is required. Set JAVA_HOME and PATH. & exit /b 1)
 where docker.exe >nul 2>&1 || (echo Docker Desktop is required. & exit /b 1)
+docker info >nul 2>&1 || (echo Docker Engine unavailable or access denied. Open Docker Desktop and use a normal CMD session with docker-users access. & exit /b 1)
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "scripts\deployment.ps1" GuardDevUp
+if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "scripts\init-local.ps1"
 if errorlevel 1 exit /b 1
-docker info >nul 2>&1 || (echo Docker Engine unavailable or access denied. Open Docker Desktop and use a normal CMD session with docker-users access. & exit /b 1)
-docker compose --env-file .env up -d --wait db
+docker compose -f compose.yaml -p account-service --env-file .env up -d --wait db
 if errorlevel 1 exit /b 1
 call mvnw.cmd -DskipTests package
 if errorlevel 1 exit /b 1

@@ -13,12 +13,13 @@ public class HttpRedirectConfig {
     @Bean
     @ConditionalOnProperty(name = "account.http.enabled", havingValue = "true")
     WebServerFactoryCustomizer<TomcatServletWebServerFactory> redirectConnector(
+        @Value("${account.http.address:127.0.0.1}") String httpAddress,
         @Value("${account.http.port:8080}") int httpPort,
         @Value("${server.port:8443}") int httpsPort) {
         return factory -> {
             Connector connector = new Connector(TomcatServletWebServerFactory.DEFAULT_PROTOCOL);
             connector.setPort(httpPort);
-            connector.setProperty("address", "127.0.0.1");
+            connector.setProperty("address", httpAddress);
             connector.setScheme("http");
             connector.setSecure(false);
             connector.setRedirectPort(httpsPort);

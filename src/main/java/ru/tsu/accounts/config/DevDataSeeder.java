@@ -15,7 +15,7 @@ import ru.tsu.accounts.identity.AppUser;
 import ru.tsu.accounts.identity.AppUserRepository;
 
 @Component
-@Profile("dev")
+@Profile("dev & !migration")
 public class DevDataSeeder implements ApplicationRunner {
     private final AppRoleRepository roles;
     private final AppUserRepository users;

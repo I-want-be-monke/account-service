@@ -127,8 +127,8 @@ class AccountLifecycleIT extends ru.tsu.accounts.support.PostgresContextLifecycl
             actor.id(), actor.username(), UUID.randomUUID())).isInstanceOf(UserCommandException.class);
         assertThat(jdbc.queryForObject("select count(*) from personal_account where id=?", Integer.class, openingId))
             .isEqualTo(1);
-        assertThat(jdbc.queryForObject("select count(*) from flyway_schema_history where success", Integer.class))
-            .isEqualTo(5);
+        assertThat(jdbc.queryForList("select version from flyway_schema_history where success order by installed_rank", String.class))
+            .containsExactly("1", "2", "3", "4", "5", "6");
     }
 
     @Test

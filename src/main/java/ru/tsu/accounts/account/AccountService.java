@@ -87,9 +87,12 @@ public class AccountService {
         }
         if (!"ACTIVE".equals(client.getStatus()))
             throw conflict("Архивному клиенту новый счет не открывается.");
-        Long serial = jdbc.queryForObject("SELECT nextval('personal_account_number_seq')", Long.class);
-        if (serial == null) throw new IllegalStateException("Account number sequence unavailable");
-        String number = "LS-" + String.format(java.util.Locale.ROOT, "%010d", serial);
+        String number;
+        do {
+            Long serial = jdbc.queryForObject("SELECT nextval('personal_account_number_seq')", Long.class);
+            if (serial == null) throw new IllegalStateException("Account number sequence unavailable");
+            number = "LS-" + String.format(java.util.Locale.ROOT, "%010d", serial);
+        } while (accounts.findByAccountNumber(number).isPresent());
         PersonalAccount account = accounts.saveAndFlush(new PersonalAccount(openingId, number, clientId, date));
         history.saveAndFlush(new AccountStatusHistory(openingId, null, "OPEN", actor,
             "Открытие лицевого счета", requestId));
