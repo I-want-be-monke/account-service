@@ -39,6 +39,7 @@ public class SecurityConfig {
             .requiresChannel(channel -> channel.anyRequest().requiresSecure())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/login", "/css/**", "/actuator/health", "/actuator/health/**").permitAll()
+                .requestMatchers("/actuator/metrics", "/actuator/metrics/**").hasRole("ADMIN")
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/audit/**", "/audit").hasAnyRole("ADMIN", "MANAGER")
                 .requestMatchers("/reports", "/reports/**", "/reports.csv", "/api/v1/reports", "/api/v1/reports/**")

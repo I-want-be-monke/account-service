@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -200,12 +201,17 @@ public class OperationController {
    return "redirect:/operations/"+id+"?posted";
   }catch(UserCommandException e){
    denial(actor,request,"OPERATION_POST_DENIED",id,e);throw e;
+  }catch(DataAccessException e){
+   denial(actor,request,"OPERATION_POST_DENIED",id,"POSTING_DATABASE_FAILURE");throw e;
   }
  }
  private void denial(AccountPrincipal actor,HttpServletRequest request,String action,UUID id,UserCommandException e){
+  denial(actor,request,action,id,e.reasonCode());
+ }
+ private void denial(AccountPrincipal actor,HttpServletRequest request,String action,UUID id,String reasonCode){
   try{
    attempts.record(AuditEntry.denied(actor.id(),actor.username(),"BUSINESS",action,
-    "OPERATION",id.toString(),e.reasonCode(),RequestIdFilter.id(request)));
+    "OPERATION",id.toString(),reasonCode,RequestIdFilter.id(request)));
   }catch(Exception failure){
    log.error("Operation denial audit unavailable; requestId={}",RequestIdFilter.id(request),failure);
   }

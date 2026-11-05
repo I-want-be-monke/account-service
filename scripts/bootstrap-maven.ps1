@@ -11,7 +11,10 @@ New-Item -ItemType Directory -Force -Path $destination | Out-Null
 try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     Invoke-WebRequest -Uri $settings.distributionUrl -OutFile $zip -UseBasicParsing
-    $actual = (Get-FileHash -Path $zip -Algorithm SHA512).Hash
+    $hash = [Security.Cryptography.SHA512]::Create()
+    $stream = [IO.File]::OpenRead($zip)
+    try { $actual = ([BitConverter]::ToString($hash.ComputeHash($stream))).Replace('-', '') }
+    finally { $stream.Dispose(); $hash.Dispose() }
     if ($actual -ine $settings.distributionSha512Sum) { throw 'Maven archive checksum mismatch' }
     Expand-Archive -Path $zip -DestinationPath $destination -Force
 } finally {

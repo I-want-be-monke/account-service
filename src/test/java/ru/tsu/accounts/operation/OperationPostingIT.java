@@ -1,7 +1,9 @@
 package ru.tsu.accounts.operation;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mockStatic;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -12,7 +14,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import jakarta.servlet.http.Cookie;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -43,6 +48,7 @@ import ru.tsu.accounts.security.DatabaseUserDetailsService;
 @SpringBootTest(properties={"server.ssl.enabled=false","account.http.enabled=false"})
 @AutoConfigureMockMvc @ActiveProfiles("dev") @Testcontainers
 class OperationPostingIT extends ru.tsu.accounts.support.PostgresContextLifecycle {
+ private static final ZoneId MOSCOW=ZoneId.of("Europe/Moscow");
  @Container static final PostgreSQLContainer<?> postgres=ru.tsu.accounts.support.LocalPostgres.create()
   .withDatabaseName("accounts").withUsername("account_owner").withPassword("test-owner-password")
   .withInitScript("db/test-roles.sql");
@@ -68,7 +74,17 @@ class OperationPostingIT extends ru.tsu.accounts.support.PostgresContextLifecycl
  @Autowired DatabaseUserDetailsService users;
  @Autowired MockMvc mvc;
  @SpyBean AuditWriter auditWriter;
- private static LocalDate today(){return LocalDate.now(ZoneId.of("Europe/Moscow"));}
+ private MockedStatic<LocalDate> dateScope;
+ private static LocalDate today(){return LocalDate.now(MOSCOW);}
+ @BeforeEach void freezeBusinessDate(){
+  // A correction prepared before midnight cannot be posted on a different day.
+  LocalDate testDate=today();
+  dateScope=mockStatic(LocalDate.class,CALLS_REAL_METHODS);
+  dateScope.when(()->LocalDate.now(MOSCOW)).thenReturn(testDate);
+ }
+ @AfterEach void restoreBusinessDate(){
+  if(dateScope!=null)dateScope.close();
+ }
  private AccountPrincipal principal(String login){return (AccountPrincipal)users.loadUserByUsername(login);}
  private void as(String login){
   var p=principal(login);
