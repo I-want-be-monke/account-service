@@ -10,7 +10,8 @@
     <a th:if="${role != 'CLIENT'}" th:href="@{/clients}">Клиенты</a>
     <a th:if="${role == 'CLIENT'}" th:href="@{/me/client}">Моя карточка</a>
     <a th:if="${role == 'CLIENT'}" th:href="@{/my/accounts}">Мои счета</a>
-    <a th:if="${role != 'CLIENT'}" th:href="@{/accounts}">Счета</a></nav>
+    <a th:if="${role != 'CLIENT'}" th:href="@{/accounts}">Счета</a>
+    <a th:if="${role == 'ADMIN' or role == 'ACCOUNTANT' or role == 'MANAGER'}" th:href="@{/reports}">Финансовые отчёты</a></nav>
   <p>Начисления, платежи и исправления проводятся бухгалтером после проверки черновика. История сохраняет исходные документы и связанные корректировки; выписку с печатью и экспортом можно открыть из карточки счёта.</p>
   <form method="post" th:action="@{/logout}">
     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">

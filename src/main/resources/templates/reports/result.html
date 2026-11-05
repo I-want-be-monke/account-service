@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title th:text="${report.query.type.title}">Финансовый отчёт</title>
+<link rel="stylesheet" th:href="@{/css/app.css}"><link rel="stylesheet" th:href="@{/css/print.css}">
+<script defer th:src="@{/js/statement.js}"></script></head>
+<body><main class="wide statement-document report-document" th:classappend="${printView ? 'print-preview' : ''}">
+<nav class="no-print"><a th:href="@{/}">Главная</a>
+    <a th:href="${editUrl}">Изменить параметры</a>
+    <a th:if="${printView}" th:href="${resultUrl}">К результатам</a>
+</nav>
+<h1 th:text="${report.query.type.title}"></h1>
+<dl class="statement-details">
+    <th:block th:if="${period.containsKey('month')}"><dt>Месяц</dt><dd th:text="${period.get('month')}"></dd></th:block>
+    <th:block th:if="${period.containsKey('asOf')}"><dt>На дату</dt><dd th:text="${period.get('asOf')}"></dd></th:block>
+    <th:block th:if="${period.containsKey('from')}"><dt>Период включительно</dt>
+        <dd><span th:text="${period.get('from')}"></span> — <span th:text="${period.get('to')}"></span></dd></th:block>
+    <dt>Сформировано (UTC)</dt><dd th:text="${report.generatedAt}"></dd>
+    <dt>Валюта</dt><dd>RUB</dd>
+    <th:block th:if="${report.query.clientId != null}"><dt>UUID клиента</dt><dd th:text="${report.query.clientId}"></dd></th:block>
+    <th:block th:if="${report.query.status != null}"><dt>Текущий статус счёта</dt>
+        <dd th:text="${report.query.status == 'OPEN' ? 'Открыт' : (report.query.status == 'SUSPENDED' ? 'Приостановлен' : 'Закрыт')}"></dd></th:block>
+</dl>
+<div class="statement-actions no-print">
+    <a th:unless="${printView}" th:href="${printUrl}">Печатное представление</a>
+    <button type="button" id="print-statement">Печать</button>
+    <a th:href="${csvUrl}">Скачать полный CSV</a>
+    <a th:href="${jsonUrl}">Получить JSON</a>
+</div>
+<p class="hint" th:switch="${report.query.type.name()}">
+    <span th:case="'CHARGES'">Корректировки учитываются в месяце своей даты движения.</span>
+    <span th:case="'PAYMENTS'">Корректировки показывают изменение зарегистрированной суммы платежей и учитываются в месяце своей даты движения.</span>
+    <span th:case="'DEBT'">Общая задолженность и общие авансы суммируются по счетам отдельно. Чистое сальдо равно их разности.</span>
+    <span th:case="'MOVEMENT'">Исходящее сальдо равно входящему сальдо плюс оборот увеличения за вычетом оборота уменьшения задолженности.</span>
+</p>
+<p>Всего счетов в отчёте <strong id="total-rows" th:text="${report.totalRows}"></strong>.
+    <span th:if="${totalPages > report.query.page}" th:text="|Детальные строки страницы ${report.query.page + 1} из ${totalPages}.|"></span>
+    Общие итоги рассчитаны по всем подходящим счетам.</p>
+<div class="table-wrap"><table class="statement-table">
+    <thead><tr><th scope="col">Лицевой счёт</th><th scope="col">Клиент</th><th scope="col">Текущий статус</th>
+        <th scope="col" class="money" th:each="column : ${columns}" th:text="${column.label}"></th>
+    </tr></thead>
+    <tbody>
+    <tr th:each="row : ${report.rows}" th:attr="data-account-id=${row.accountId}">
+        <th scope="row"><a th:href="@{/accounts/{id}(id=${row.accountId})}" th:text="${row.accountNumber}"></a></th>
+        <td class="statement-text" th:text="${row.clientName}"></td>
+        <td th:text="${row.status == 'OPEN' ? 'Открыт' : (row.status == 'SUSPENDED' ? 'Приостановлен' : 'Закрыт')}"></td>
+        <td class="money" th:each="column : ${columns}" th:attr="data-amount-key=${column.key}"
+            th:text="${row.amounts.get(column.key)}"></td>
+    </tr>
+    <tr th:if="${report.rows.empty}"><td th:colspan="${3 + columns.size()}"
+        th:text="${report.totalRows == 0 ? 'По заданным параметрам нет счетов для отчёта.' : 'На выбранной странице нет строк.'}"></td></tr>
+    </tbody>
+    <tfoot><tr><th colspan="3" scope="row">Итого по всему отчёту</th>
+        <td class="money" th:each="column : ${columns}" th:attr="data-total-key=${column.key}">
+            <strong th:text="${report.totals.get(column.key)}"></strong></td>
+    </tr></tfoot>
+</table></div>
+<nav class="pager no-print" aria-label="Страницы отчёта" th:unless="${printView}">
+    <a th:if="${firstUrl}" th:href="${firstUrl}">К первой странице</a>
+    <a th:if="${previousUrl}" th:href="${previousUrl}">Назад</a>
+    <a th:if="${nextUrl}" th:href="${nextUrl}">Далее</a>
+</nav>
+</main></body></html>

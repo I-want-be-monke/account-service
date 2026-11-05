@@ -4,6 +4,7 @@
 .statement-document .statement-table td { overflow-wrap: anywhere; }
 .statement-document .statement-text { white-space: pre-line; }
 .statement-document .money { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.report-document .statement-table th.money { white-space: normal; }
 .statement-document .statement-totals { grid-template-columns: minmax(16rem, 30rem) 1fr; padding-top: 1rem; border-top: 2px solid #172234; }
 .statement-document h2 { font-size: 1.2rem; }
 .statement-document.print-preview { border-color: #8391a4; }

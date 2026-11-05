@@ -33,6 +33,8 @@ public class SecurityConfig {
                 .requestMatchers("/login", "/css/**", "/actuator/health", "/actuator/health/**").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/audit/**", "/audit").hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers("/reports", "/reports/**", "/reports.csv", "/api/v1/reports", "/api/v1/reports/**")
+                    .hasAnyRole("ADMIN", "ACCOUNTANT", "MANAGER")
                 .requestMatchers("/clients/**", "/clients").hasAnyRole("ADMIN", "OPERATOR", "ACCOUNTANT", "MANAGER")
                 .requestMatchers("/me/client", "/my/accounts", "/my/accounts/**").hasRole("CLIENT")
                 .requestMatchers("/operations/**").hasAnyRole("OPERATOR", "ACCOUNTANT", "MANAGER", "CLIENT")

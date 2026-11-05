@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Финансовые отчёты</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
+<body><main class="wide">
+<nav><a th:href="@{/}">Главная</a><a th:href="@{/accounts}">Лицевые счета</a></nav>
+<h1>Финансовые отчёты</h1>
+<nav aria-label="Вид отчёта">
+    <a th:each="type : ${types}" th:href="@{/reports(type=${type.name()})}"
+       th:classappend="${type == selectedType ? 'button-link' : ''}"
+       th:attr="aria-current=${type == selectedType ? 'page' : null}" th:text="${type.title}"></a>
+</nav>
+<h2 th:text="${selectedType.title}"></h2>
+<p class="alert" role="alert" th:if="${formError}" th:text="${formError}"></p>
+<form method="get" th:action="@{/reports/result}">
+    <input type="hidden" name="type" th:value="${selectedType.name()}">
+    <div class="filters" th:switch="${selectedType.name()}">
+        <label th:case="'CHARGES'">Месяц <input type="month" name="month" required th:value="${month}"></label>
+        <label th:case="'PAYMENTS'">Месяц <input type="month" name="month" required th:value="${month}"></label>
+        <label th:case="'DEBT'">На дату <input type="date" name="asOf" required th:value="${asOf}"></label>
+        <th:block th:case="'MOVEMENT'">
+            <label>С даты <input type="date" name="from" required th:value="${from}"></label>
+            <label>По дату <input type="date" name="to" required th:value="${to}"></label>
+        </th:block>
+    </div>
+    <div class="filters">
+        <label>UUID клиента <input type="text" name="clientId" maxlength="36" th:value="${clientId}"
+                                  placeholder="Все клиенты" aria-describedby="client-filter-hint"></label>
+        <label>Текущий статус счёта <select name="status">
+            <option value="" th:selected="${status == ''}">Все статусы</option>
+            <option value="OPEN" th:selected="${status == 'OPEN'}">Открыт</option>
+            <option value="SUSPENDED" th:selected="${status == 'SUSPENDED'}">Приостановлен</option>
+            <option value="CLOSED" th:selected="${status == 'CLOSED'}">Закрыт</option>
+        </select></label>
+        <label>Строк на странице <input type="number" name="size" required min="1" max="100" th:value="${size}"></label>
+    </div>
+    <p class="hint" id="client-filter-hint">UUID можно скопировать из адреса карточки в разделе «Клиенты». Если поле пустое, отчёт включает всех клиентов.</p>
+    <button type="submit">Сформировать отчёт</button>
+</form>
+</main></body></html>
