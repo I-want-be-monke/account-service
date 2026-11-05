@@ -14,7 +14,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "scripts\start-app.ps1"
 if errorlevel 1 exit /b 1
 for /L %%I in (1,1,45) do (
   curl.exe -kfsS https://localhost:8443/actuator/health/readiness >nul 2>&1 && goto READY
-  timeout /t 2 /nobreak >nul
+  ping -n 3 127.0.0.1 >nul
 )
 echo Application did not become ready. Check .local\logs\stderr.log and stdout.log.
 exit /b 1

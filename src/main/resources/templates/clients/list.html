@@ -1,0 +1,14 @@
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Клиенты</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
+<nav><a th:href="@{/}">Главная</a></nav><h1>Клиенты</h1>
+<p th:if="${isOperator}"><a class="button-link" th:href="@{/clients/new}">Создать клиента</a></p>
+<form class="filters" method="get" th:action="@{/clients}">
+<label>Название или ФИО<input name="name" th:value="${name}" maxlength="200"></label>
+<label>Тип<select name="type"><option value="">Все</option><option value="PERSON" th:selected="${type == 'PERSON'}">Физическое лицо</option><option value="ORGANIZATION" th:selected="${type == 'ORGANIZATION'}">Организация</option></select></label>
+<label>Идентификатор<input name="identifier" th:value="${identifier}" maxlength="100"></label>
+<label>Статус<select name="status"><option value="">Все</option><option value="ACTIVE" th:selected="${status == 'ACTIVE'}">Активен</option><option value="ARCHIVED" th:selected="${status == 'ARCHIVED'}">Архив</option></select></label>
+<button type="submit">Найти</button></form>
+<div class="table-wrap"><table><thead><tr><th>Имя / название</th><th>Тип</th><th>Идентификатор</th><th>Статус</th><th>Карточка</th></tr></thead><tbody>
+<tr th:each="c : ${clients.content}"><td th:text="${c.displayName}"></td><td th:text="${c.clientType == 'PERSON' ? 'Физическое лицо' : 'Организация'}"></td><td th:text="|${c.identifierType}: ${c.identifierValue}|"></td><td th:text="${c.status == 'ACTIVE' ? 'Активен' : 'Архив'}"></td><td><a th:href="@{/clients/{id}(id=${c.id})}">Открыть</a></td></tr>
+<tr th:if="${clients.empty}"><td colspan="5">Клиенты не найдены.</td></tr></tbody></table></div>
+<div class="pager"><a th:if="${clients.hasPrevious()}" th:href="@{/clients(name=${name},type=${type},identifier=${identifier},status=${status},page=${clients.number - 1})}">Назад</a><span th:text="|Страница ${clients.number + 1} из ${clients.totalPages == 0 ? 1 : clients.totalPages}|"></span><a th:if="${clients.hasNext()}" th:href="@{/clients(name=${name},type=${type},identifier=${identifier},status=${status},page=${clients.number + 1})}">Далее</a></div>
+</main></body></html>

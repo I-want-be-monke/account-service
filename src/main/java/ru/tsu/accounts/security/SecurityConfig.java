@@ -30,6 +30,8 @@ public class SecurityConfig {
                 .requestMatchers("/login", "/css/**", "/actuator/health", "/actuator/health/**").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/audit/**", "/audit").hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers("/clients/**", "/clients").hasAnyRole("ADMIN", "OPERATOR", "ACCOUNTANT", "MANAGER")
+                .requestMatchers("/me/client").hasRole("CLIENT")
                 .anyRequest().authenticated())
             .formLogin(form -> form.loginPage("/login").loginProcessingUrl("/login")
                 .successHandler(authenticationHandlers).failureHandler(authenticationHandlers).permitAll())

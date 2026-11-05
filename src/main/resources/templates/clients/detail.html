@@ -1,0 +1,10 @@
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Карточка клиента</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide"><nav><a th:href="@{/clients}">К списку клиентов</a> <a th:href="@{/}">Главная</a></nav><h1 th:text="${client.displayName}"></h1>
+<p class="notice" th:if="${param.created}">Клиент создан.</p><p class="notice" th:if="${param.updated}">Изменения сохранены.</p>
+<dl><dt>Тип</dt><dd th:text="${client.clientType == 'PERSON' ? 'Физическое лицо' : 'Организация'}"></dd>
+<dt>Идентификатор</dt><dd th:text="|${client.identifierType}: ${client.identifierValue}|"></dd>
+<dt>Телефон</dt><dd th:text="${client.phone == null ? 'Не указан' : client.phone}"></dd>
+<dt>Электронная почта</dt><dd th:text="${client.email == null ? 'Не указана' : client.email}"></dd>
+<dt>Статус</dt><dd th:text="${client.status == 'ACTIVE' ? 'Активен' : 'Архив'}"></dd>
+<dt>Версия</dt><dd th:text="${client.version}"></dd></dl>
+<p th:if="${isOperator}"><a th:if="${client.status == 'ACTIVE'}" th:href="@{/clients/{id}/edit(id=${client.id})}">Изменить данные</a> <a th:href="@{/clients/{id}/status(id=${client.id})}">Изменить статус</a></p>
+</main></body></html>
