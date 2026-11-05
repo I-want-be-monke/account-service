@@ -1,6 +1,7 @@
 package ru.tsu.accounts.identity;
 
 import java.util.UUID;
+import java.time.Instant;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -41,6 +42,9 @@ public class AppUser {
     @Version
     private Long version;
 
+    @Column(name = "updated_at", insertable = false, nullable = false)
+    private Instant updatedAt;
+
     protected AppUser() { }
 
     public AppUser(String login, String fullName, String passwordHash, AppRole role, UUID clientId) {
@@ -61,4 +65,25 @@ public class AppUser {
     public UUID getClientId() { return clientId; }
     public String getStatus() { return status; }
     public long getAuthVersion() { return authVersion; }
+    public Long getVersion() { return version; }
+
+    public void updateIdentity(String newLogin, String newFullName) {
+        if (!login.equals(newLogin)) {
+            login = newLogin;
+            authVersion++;
+        }
+        fullName = newFullName;
+        updatedAt = Instant.now();
+    }
+
+    public void changeAccess(AppRole newRole, String newStatus, UUID newClientId) {
+        if (!role.getCode().equals(newRole.getCode()) || !status.equals(newStatus)
+            || !java.util.Objects.equals(clientId, newClientId)) {
+            authVersion++;
+        }
+        role = newRole;
+        status = newStatus;
+        clientId = newClientId;
+        updatedAt = Instant.now();
+    }
 }

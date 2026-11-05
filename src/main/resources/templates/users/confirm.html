@@ -1,0 +1,17 @@
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>Подтверждение изменения</title>
+<link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="card">
+<nav><a th:href="@{/admin/users/{id}/edit(id=${user.id})}">Вернуться без изменения</a></nav>
+<h1>Подтвердите изменение доступа</h1>
+<dl><dt>Пользователь</dt><dd th:text="${user.login}"></dd>
+<dt>Текущая роль</dt><dd th:text="${user.roleName}"></dd>
+<dt>Новая роль</dt><dd th:text="${roleNames.get(pending.roleCode)}"></dd>
+<dt>Текущий статус</dt><dd th:text="${user.status == 'ACTIVE' ? 'Активен' : 'Заблокирован'}"></dd>
+<dt>Новый статус</dt><dd th:text="${pending.status == 'ACTIVE' ? 'Активен' : 'Заблокирован'}"></dd>
+<dt>ID клиента</dt><dd th:text="${pending.clientId == null ? 'Нет' : pending.clientId}"></dd>
+<dt>Причина</dt><dd th:text="${pending.reason}"></dd></dl>
+<form method="post" th:action="@{/admin/users/{id}/confirm(id=${user.id})}">
+<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+<input type="hidden" name="token" th:value="${pending.token}">
+<button type="submit">Подтвердить изменение</button></form>
+</main></body></html>

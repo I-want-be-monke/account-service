@@ -4,8 +4,10 @@
   <link rel="stylesheet" th:href="@{/css/app.css}"></head>
 <body><main class="card"><h1>Сервис лицевых счетов</h1>
   <p>Вы вошли как <strong th:text="${name}">Пользователь</strong>.</p>
-  <p>Роль: <span th:text="${role}">ROLE</span></p>
-  <p>Управление счетами появится на следующих этапах разработки.</p>
+  <p>Роль: <span th:switch="${role}"><span th:case="'ADMIN'">Администратор</span><span th:case="'OPERATOR'">Оператор</span><span th:case="'ACCOUNTANT'">Бухгалтер-расчетчик</span><span th:case="'MANAGER'">Руководитель</span><span th:case="'CLIENT'">Клиент</span></span></p>
+  <nav><a th:if="${role == 'ADMIN'}" th:href="@{/admin/users}">Пользователи</a>
+    <a th:if="${role == 'ADMIN' or role == 'MANAGER'}" th:href="@{/audit}">Журнал действий</a></nav>
+  <p>Раздел лицевых счетов появится на следующем этапе.</p>
   <form method="post" th:action="@{/logout}">
     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
     <button type="submit">Выйти</button>

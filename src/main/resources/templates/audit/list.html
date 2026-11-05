@@ -1,0 +1,23 @@
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>Журнал действий</title>
+<link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
+<nav><a th:href="@{/}">Главная</a> <a th:if="${admin}" th:href="@{/admin/users}">· Пользователи</a></nav>
+<h1>Журнал действий</h1><p th:if="${!admin}">Показаны только разрешенные события действий и доступа.</p>
+<form method="get" th:action="@{/audit}" class="filters">
+<label>С <input type="date" name="from" th:value="${from}"></label><label>По <input type="date" name="to" th:value="${to}"></label>
+<label>ID инициатора <input name="actorId" th:value="${actorId}" placeholder="UUID"></label>
+<label>Тип объекта <input name="objectType" th:value="${objectType}" maxlength="32"></label>
+<label>ID объекта <input name="objectId" th:value="${objectId}" maxlength="64"></label>
+<label>Действие <input name="action" th:value="${action}" maxlength="64"></label>
+<label>Результат <select name="result"><option value="">Все</option><option value="SUCCESS" th:selected="${result == 'SUCCESS'}">Успех</option><option value="DENIED" th:selected="${result == 'DENIED'}">Отказ</option><option value="FAILED" th:selected="${result == 'FAILED'}">Ошибка</option></select></label>
+<label>Категория <select name="category"><option value="">Все разрешенные</option><option th:if="${admin}" value="SECURITY" th:selected="${category == 'SECURITY'}">Безопасность</option><option value="ACCESS" th:selected="${category == 'ACCESS'}">Доступ</option><option value="BUSINESS" th:selected="${category == 'BUSINESS'}">Действия</option><option th:if="${admin}" value="OPERATIONS" th:selected="${category == 'OPERATIONS'}">Эксплуатация</option></select></label>
+<button type="submit">Найти</button></form>
+<div class="table-wrap"><table><thead><tr><th>Время UTC</th><th>Инициатор</th><th>Действие</th><th>Объект</th><th>Результат</th><th></th></tr></thead><tbody>
+<tr th:each="e : ${events.rows}"><td th:text="${e.occurredAt}"></td><td th:text="${e.actorLogin ?: 'Анонимно'}"></td>
+<td th:text="${labels.get(e.action) ?: e.action}"></td><td th:text="|${e.objectType ?: '—'} ${e.objectId ?: ''}|"></td>
+<td th:text="${labels.get(e.result) ?: e.result}"></td><td><a th:href="@{/audit/{id}(id=${e.id})}">Подробнее</a></td></tr>
+<tr th:if="${events.rows.empty}"><td colspan="6">Событий нет.</td></tr></tbody></table></div>
+<div class="pager"><a th:if="${events.page > 0}" th:href="@{/audit(from=${from},to=${to},actorId=${actorId},objectType=${objectType},objectId=${objectId},action=${action},result=${result},category=${category},page=${events.page - 1})}">Назад</a>
+<span th:text="|Страница ${events.page + 1}, событий: ${events.total}|"></span>
+<a th:if="${events.hasNext()}" th:href="@{/audit(from=${from},to=${to},actorId=${actorId},objectType=${objectType},objectId=${objectId},action=${action},result=${result},category=${category},page=${events.page + 1})}">Далее</a></div>
+</main></body></html>

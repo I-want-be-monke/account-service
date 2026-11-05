@@ -1,0 +1,22 @@
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>Пользователи</title>
+<link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
+<nav><a th:href="@{/}">Главная</a> · <a th:href="@{/audit}">Журнал</a></nav>
+<h1>Пользователи</h1>
+<p class="notice" th:if="${param.created}">Пользователь создан.</p>
+<p class="notice" th:if="${param.updated}">Изменения сохранены.</p>
+<p><a class="button-link" th:href="@{/admin/users/new}">Создать пользователя</a></p>
+<form method="get" th:action="@{/admin/users}" class="filters">
+<label>Логин <input name="login" th:value="${login}" maxlength="100"></label>
+<label>Роль <select name="role"><option value="">Все</option><option th:each="r : ${roles}" th:value="${r.code}" th:text="${r.displayName}" th:selected="${role == r.code}"></option></select></label>
+<label>Статус <select name="status"><option value="">Все</option><option value="ACTIVE" th:selected="${status == 'ACTIVE'}">Активен</option><option value="BLOCKED" th:selected="${status == 'BLOCKED'}">Заблокирован</option></select></label>
+<button type="submit">Найти</button></form>
+<div class="table-wrap"><table><thead><tr><th>Логин</th><th>Имя</th><th>Роль</th><th>Статус</th><th>Действие</th></tr></thead>
+<tbody><tr th:each="u : ${users.content}"><td th:text="${u.login}"></td><td th:text="${u.fullName}"></td>
+<td th:text="${u.roleName}"></td><td th:text="${u.status == 'ACTIVE' ? 'Активен' : 'Заблокирован'}"></td>
+<td><a th:href="@{/admin/users/{id}/edit(id=${u.id})}">Открыть</a></td></tr>
+<tr th:if="${users.empty}"><td colspan="5">Пользователи не найдены.</td></tr></tbody></table></div>
+<div class="pager"><a th:if="${users.hasPrevious()}" th:href="@{/admin/users(login=${login},role=${role},status=${status},page=${users.number - 1})}">Назад</a>
+<span th:text="|Страница ${users.number + 1} из ${users.totalPages == 0 ? 1 : users.totalPages}|"></span>
+<a th:if="${users.hasNext()}" th:href="@{/admin/users(login=${login},role=${role},status=${status},page=${users.number + 1})}">Далее</a></div>
+</main></body></html>

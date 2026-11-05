@@ -1,0 +1,15 @@
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>Событие журнала</title>
+<link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
+<nav><a th:href="@{/audit}">Журнал действий</a></nav><h1 th:text="|Событие № ${event.id}|"></h1>
+<dl><dt>Время UTC</dt><dd th:text="${event.occurredAt}"></dd><dt>Инициатор</dt><dd th:text="${event.actorLogin ?: 'Анонимно'}"></dd>
+<dt>Категория</dt><dd th:text="${labels.get(event.category) ?: event.category}"></dd>
+<dt>Действие</dt><dd th:text="${labels.get(event.action) ?: event.action}"></dd>
+<dt>Объект</dt><dd th:text="|${event.objectType ?: '—'} ${event.objectId ?: ''}|"></dd>
+<dt>Результат</dt><dd th:text="${labels.get(event.result) ?: event.result}"></dd>
+<dt>Код причины</dt><dd th:text="${event.reasonCode ?: 'Нет'}"></dd>
+<dt>ID запроса</dt><dd th:text="${event.requestId}"></dd></dl>
+<h2>Изменения</h2><p>До:</p><pre th:text="${event.beforeData ?: 'Нет'}"></pre>
+<p>После:</p><pre th:text="${event.afterData ?: 'Нет'}"></pre>
+<p>Дополнительные сведения:</p><pre th:text="${event.details ?: 'Нет'}"></pre>
+</main></body></html>

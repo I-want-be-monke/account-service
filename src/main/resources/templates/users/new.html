@@ -1,0 +1,19 @@
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>Новый пользователь</title>
+<link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="card">
+<nav><a th:href="@{/admin/users}">Пользователи</a></nav><h1>Новый пользователь</h1>
+<p class="alert" th:if="${formError}" th:text="${formError}"></p>
+<form method="post" th:action="@{/admin/users/new}" th:object="${form}">
+<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+<label for="login">Логин *</label><input id="login" th:field="*{login}" maxlength="100" required>
+<small class="alert" th:if="${#fields.hasErrors('login')}" th:errors="*{login}"></small>
+<label for="fullName">Имя *</label><input id="fullName" th:field="*{fullName}" maxlength="200" required>
+<small class="alert" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}"></small>
+<label for="password">Начальный пароль * (12–128 символов)</label><input id="password" type="password" name="password" minlength="12" maxlength="128" autocomplete="new-password" required>
+<small class="alert" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></small>
+<label for="roleCode">Роль *</label><select id="roleCode" th:field="*{roleCode}" required><option value="">Выберите роль</option>
+<option th:each="r : ${roles}" th:value="${r.code}" th:text="${r.displayName}"></option></select>
+<label for="clientId">ID клиента (только для роли «Клиент»)</label><input id="clientId" th:field="*{clientId}" placeholder="UUID существующего клиента">
+<p class="hint">Для клиентской роли укажите ID существующей карточки клиента.</p>
+<button type="submit">Создать</button> <a th:href="@{/admin/users}">Отмена</a></form>
+</main></body></html>

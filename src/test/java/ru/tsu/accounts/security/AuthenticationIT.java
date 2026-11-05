@@ -74,6 +74,7 @@ class AuthenticationIT {
         mvc.perform(post("/login").secure(true).with(csrf()).param("username", "demo-admin")
                 .param("password", "wrong-password"))
             .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/login?error"));
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_event WHERE action='LOGIN' AND result='DENIED' AND actor_login_snapshot='demo-admin'", Integer.class)).isPositive();
 
         var result = mvc.perform(post("/login").secure(true).with(csrf())
                 .param("username", "demo-admin").param("password", "correct-password-for-e1"))
@@ -81,6 +82,7 @@ class AuthenticationIT {
             .andReturn();
         String setCookie = result.getResponse().getHeader("Set-Cookie");
         assertThat(setCookie).contains("ACCOUNT_SESSION=").contains("HttpOnly").contains("Secure");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_event WHERE action='LOGIN' AND result='SUCCESS' AND actor_login_snapshot='demo-admin'", Integer.class)).isPositive();
         String value = setCookie.split("ACCOUNT_SESSION=", 2)[1].split(";", 2)[0];
         Cookie cookie = new Cookie("ACCOUNT_SESSION", value);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM spring_session", Integer.class)).isPositive();
