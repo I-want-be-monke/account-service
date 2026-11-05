@@ -1,6 +1,7 @@
 <!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>История операций</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
 <nav><a th:href="@{/accounts/{id}(id=${account.id})}">← Счет</a> <a th:href="@{/}">Главная</a></nav>
 <h1>История счета <span th:text="${account.accountNumber}"></span></h1>
+<p><a th:href="@{/accounts/{id}/statement(id=${account.id})}">Сформировать выписку</a></p>
 <p>Полное текущее сальдо, ₽: <strong th:text="${account.currentBalance}"></strong>. Фильтр меняет только строки истории; положительное значение — долг, отрицательное — аванс.</p>
 <p class="notice" th:if="${param.discarded}">Черновик удален.</p>
 <p th:if="${isAccountant and account.status == 'OPEN'}"><a th:href="@{/accounts/{id}/operations/new(id=${account.id},kind='CHARGE')}">Новое начисление</a> · <a th:href="@{/accounts/{id}/operations/new(id=${account.id},kind='PAYMENT')}">Зарегистрировать платеж</a></p>

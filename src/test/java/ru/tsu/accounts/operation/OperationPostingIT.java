@@ -42,7 +42,7 @@ import ru.tsu.accounts.security.DatabaseUserDetailsService;
 
 @SpringBootTest(properties={"server.ssl.enabled=false","account.http.enabled=false"})
 @AutoConfigureMockMvc @ActiveProfiles("dev") @Testcontainers
-class OperationPostingIT {
+class OperationPostingIT extends ru.tsu.accounts.support.PostgresContextLifecycle {
  @Container static final PostgreSQLContainer<?> postgres=ru.tsu.accounts.support.LocalPostgres.create()
   .withDatabaseName("accounts").withUsername("account_owner").withPassword("test-owner-password")
   .withInitScript("db/test-roles.sql");

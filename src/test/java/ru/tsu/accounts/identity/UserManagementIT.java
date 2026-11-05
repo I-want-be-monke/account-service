@@ -44,7 +44,7 @@ import ru.tsu.accounts.security.DatabaseUserDetailsService;
 @AutoConfigureMockMvc
 @ActiveProfiles("dev")
 @Testcontainers
-class UserManagementIT {
+class UserManagementIT extends ru.tsu.accounts.support.PostgresContextLifecycle {
     @Container
     static final PostgreSQLContainer<?> postgres = ru.tsu.accounts.support.LocalPostgres.create()
         .withDatabaseName("accounts").withUsername("account_owner")

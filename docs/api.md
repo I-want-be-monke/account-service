@@ -1,4 +1,4 @@
-# API чтения E7
+# API чтения E7–E8
 
 Базовый адрес: `https://localhost:8443/api/v1`. Используется существующая HTTPS-авторизация с серверным сеансом `ACCOUNT_SESSION`. В браузере сначала войдите через `/login`. API не принимает пароль, токен или роль в параметрах; CORS не открыт. Ответы UTF-8 JSON. Любой ID проверяется на сервере с учетом текущего пользователя и привязки клиента.
 
@@ -65,4 +65,102 @@
 {"status":403,"detail":"Счет недоступен.","code":"ACCOUNT_NOT_OWNED","requestId":"44444444-4444-4444-4444-444444444444"}
 ```
 
-`X-Request-ID` содержит тот же ID запроса. Изменяющий API, выписка, CSV и отчеты относятся к последующим этапам.
+`X-Request-ID` содержит тот же ID запроса. Изменяющий финансовый API не добавлен. Выписка и CSV реализованы в E8 ниже; сводные отчёты остаются E9.
+
+## Выписка E8: JSON и HTML
+
+`GET /api/v1/accounts/{id}/statement?from=2026-11-04&to=2026-11-05`
+
+Доступ: ADMIN, OPERATOR, ACCOUNTANT, MANAGER и владелец CLIENT через существующий HTTPS-сеанс. Общая `AccountAccessPolicy` проверяет UUID и текущую привязку клиента. Право ADMIN на выписку не открывает ему отдельную историю `/operations` E7. UUID чужого/недоступного счёта для CLIENT всегда даёт 403 без реквизитов.
+
+Оба параметра обязательны: календарные ISO-даты `YYYY-MM-DD`, `from <= to`, не более **366 дней включительно**, `from >= historyStartOn`. Статусы OPEN/SUSPENDED/CLOSED не ограничивают разрешённое чтение. Пустой период успешен. Неверная/отсутствующая дата, обратный или слишком длинный период — 400 `STATEMENT_VALIDATION`; отсутствующий счёт для сотрудника — 404 `ACCOUNT_NOT_FOUND`.
+
+HTML использует тот же документ:
+
+- `/accounts/{id}/statement` — форма периода.
+- `/accounts/{id}/statement/result?from=&to=` — результат.
+- `/accounts/{id}/statement/print?from=&to=` — печатное представление; кнопка вызывает диалог печати, `print.css` скрывает навигацию.
+- `/accounts/{id}/statement.csv?from=&to=` — скачивание CSV.
+
+Успешный JSON — явный `Statement`, без JPA Entity и security-объектов. `formatVersion` равен строке `"1"`; UUID и даты стабильны, `generatedAt` и `postedAt` — ISO-8601 Instant UTC с `Z`, даты — `YYYY-MM-DD`. **Все деньги представлены строками с точкой и двумя знаками**, включая отрицательные значения. Валюта — RUB.
+
+Пример структуры с сокращённым списком операций (показано одно из трёх движений контрольного периода):
+
+```json
+{
+  "formatVersion": "1",
+  "accountId": "11111111-1111-1111-1111-111111111111",
+  "accountNumber": "LS-0000000007",
+  "ownerId": "22222222-2222-2222-2222-222222222222",
+  "ownerName": "Учебный клиент",
+  "accountStatus": "OPEN",
+  "historyStartOn": "2026-10-01",
+  "from": "2026-11-04",
+  "to": "2026-11-05",
+  "generatedAt": "2026-11-05T19:00:00Z",
+  "currency": "RUB",
+  "openingBalance": "1000.00",
+  "increase": "50.00",
+  "decrease": "500.00",
+  "closingBalance": "550.00",
+  "operations": [{
+    "id": "33333333-3333-3333-3333-333333333333",
+    "kind": "PAYMENT",
+    "status": "CORRECTED",
+    "date": "2026-11-04",
+    "postedAt": "2026-11-04T12:00:00Z",
+    "amount": "400.00",
+    "delta": "-400.00",
+    "documentNumber": "DEMO-PAYMENT-1",
+    "basis": "Синтетический платёж",
+    "periodStart": null,
+    "paymentMethod": "MANUAL_TRANSFER",
+    "originalOperationId": null,
+    "targetAmount": null,
+    "correctionReason": null,
+    "balanceAfter": "600.00"
+  }]
+}
+```
+
+В действительном ответе `operations` содержит **все** проведённые строки периода, без пагинации и PREPARED. У CORRECTION заполнены `originalOperationId`, `targetAmount`, `correctionReason`, а `delta` содержит собственный знаковый эффект. `CORRECTED` у исходной строки вычисляется по проведённым исправлениям не позже `to`, исходный документ не меняется. Порядок: `date`, `postedAt`, `id` по возрастанию; `balanceAfter` — остаток после строки.
+
+Входящее = `opening_balance` счёта + сумма POSTED delta с `history_start_on` строго до `from`. Увеличение = сумма положительных delta периода; уменьшение = абсолютная сумма отрицательных. Исходящее = входящее + увеличение − уменьшение. Движения после `to` не учитываются, текущее `current_balance` не подставляется.
+
+Каждый документ читается отдельной короткой read-only транзакцией `REQUIRES_NEW / REPEATABLE READ`. Метаданные, агрегаты и строки видят один PostgreSQL snapshot. Разные HTTP-запросы HTML/CSV/JSON имеют собственные снимки: после нового проведения они могут законно различаться.
+
+Успешное формирование/экспорт журналируется `STATEMENT_GENERATED` отдельной транзакцией **после чтения и до первого байта ответа**. Событие содержит формат, период, UUID счёта и requestId; оно означает разрешённое формирование, а не подтверждённую доставку человеку. Сбой аудита — 503 `DOCUMENT_AUDIT_UNAVAILABLE`, документ не выдаётся. Недоступная БД — 503 `DATABASE_UNAVAILABLE`; невозможность выгрузки — 503 `DOCUMENT_EXPORT_UNAVAILABLE`. Ошибки JSON сохраняют существующий `application/problem+json`, `code`, `requestId`. Ответы документов имеют `Cache-Control: no-store`.
+
+## CSV выписки: формат версии 1
+
+`GET /accounts/{id}/statement.csv?from=&to=` имеет те же права и параметры. Успех: `text/csv;charset=UTF-8`, `Content-Disposition: attachment; filename="statement-LS-…-from-to.csv"`. Ошибки этого UI-маршрута — обычные безопасные HTML-страницы 400/403/404/503, **не частичный CSV**. Защищённого изменяющего API нет.
+
+Байты: UTF-8, в начале BOM `EF BB BF`; разделитель `;`, конец записи CRLF. Первая запись — имена 31 колонки:
+
+```text
+record_type;format_version;account_id;account_number;owner_id;owner_name;account_status;history_start_on;from;to;generated_at;currency;operation_id;operation_date;posted_at;kind;status;document_number;basis;period_start;payment_method;original_operation_id;target_amount;correction_reason;amount;delta;balance_after;opening_balance;increase;decrease;closing_balance
+```
+
+Далее HEADER, OPENING, ноль или более OPERATION и TOTAL. В каждой записи одинаково 31 поле; неиспользуемые пусты. `record_type`, `format_version="1"`, `account_id` и `currency` заполнены во всех служебных/финансовых записях.
+
+| record_type | Дополнительно заполненные колонки |
+|---|---|
+| HEADER | account_number, owner_id, owner_name, account_status, history_start_on, from, to, generated_at |
+| OPENING | opening_balance и balance_after с входящим сальдо |
+| OPERATION | operation_id, operation_date, posted_at, kind, status, document_number, basis, period_start, payment_method, original_operation_id, target_amount, correction_reason, amount, delta, balance_after — nullable поля пусты |
+| TOTAL | opening_balance, increase, decrease, closing_balance |
+
+Текстовые значения всегда заключаются в двойные кавычки, внутренняя кавычка удваивается. `;`, CR и LF остаются частью правильно экранированного поля, поэтому строки нужно читать CSV-парсером, а не `split` по строке/разделителю. Денежные поля — числа с точкой и двумя знаками, без кавычек; отрицательная числовая delta не превращается в текст.
+
+У текстов с опасным формульным префиксом `=`, `+`, `-`, `@` (в том числе после начальных пробелов/управляющих символов) перед всем значением добавляется апостроф. Это намеренное отличие безопасного CSV от исходного текста в JSON/HTML, не изменение базы. Пример: основание `=1+1; "проверка"` экспортируется как `"'=1+1; ""проверка"""`. Обычные текстовые поля сохраняются при обратном чтении без потерь.
+
+CSV не ограничен страницей истории. Сервис читает строки нужного счёта/периода курсором `fetchSize=256` в том же согласованном снимке, используя общие `Statement`/`StatementLine` и алгоритм расчёта. Строки последовательно пишутся во временный файл, затем транзакция завершается, выполняется аудит и начинается передача готового файла. Файл удаляется после передачи либо ошибки, ресурсы курсора закрываются. Медленное скачивание не удерживает соединение PostgreSQL.
+
+
+Пример пустого периода с входящим остатком 550.00 (после строки названий колонок; BOM не изображён):
+
+```csv
+"HEADER";"1";"11111111-1111-1111-1111-111111111111";"LS-0000000007";"22222222-2222-2222-2222-222222222222";"Учебный клиент";"OPEN";"2026-10-01";"2026-11-04";"2026-11-05";"2026-11-05T19:00:00Z";"RUB";;;;;;;;;;;;;;;;;;;
+"OPENING";"1";"11111111-1111-1111-1111-111111111111";;;;;;;;;"RUB";;;;;;;;;;;;;;;550.00;550.00;;;
+"TOTAL";"1";"11111111-1111-1111-1111-111111111111";;;;;;;;;"RUB";;;;;;;;;;;;;;;;550.00;0.00;0.00;550.00
+```

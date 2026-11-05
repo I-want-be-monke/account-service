@@ -8,6 +8,7 @@
 <dt>Входящее сальдо, ₽</dt><dd th:text="${account.openingBalance}"></dd><dt>Текущее сальдо, ₽</dt><dd th:text="${account.currentBalance}"></dd></dl>
 <p th:if="${isOperator and account.status != 'CLOSED'}"><a th:href="@{/accounts/{id}/status(id=${account.id})}">Изменить статус</a></p>
 <p th:if="${canReadOperations}"><a th:href="@{/accounts/{id}/operations(id=${account.id})}">Операции по счету</a></p>
+<p><a th:href="@{/accounts/{id}/statement(id=${account.id})}">Сформировать выписку</a></p>
 <p th:if="${isAccountant and account.status == 'OPEN'}"><a th:href="@{/accounts/{id}/operations/new(id=${account.id},kind='CHARGE')}">Начислить</a> · <a th:href="@{/accounts/{id}/operations/new(id=${account.id},kind='PAYMENT')}">Зарегистрировать платеж</a></p>
 <h2>История состояний</h2><div class="table-wrap"><table><thead><tr><th>Время</th><th>Было</th><th>Стало</th><th>Причина</th></tr></thead><tbody>
 <tr th:each="item : ${history.content}"><td th:text="${item.changedAt}"></td><td th:text="${item.oldStatus == null ? 'Новый счёт' : item.oldStatus}"></td><td th:text="${item.newStatus}"></td><td th:text="${item.reason}"></td></tr>

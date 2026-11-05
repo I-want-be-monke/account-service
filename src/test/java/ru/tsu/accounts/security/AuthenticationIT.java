@@ -26,7 +26,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @AutoConfigureMockMvc
 @ActiveProfiles("dev")
 @Testcontainers
-class AuthenticationIT {
+class AuthenticationIT extends ru.tsu.accounts.support.PostgresContextLifecycle {
     @Container
     static final PostgreSQLContainer<?> postgres = ru.tsu.accounts.support.LocalPostgres.create()
         .withDatabaseName("accounts")

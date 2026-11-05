@@ -19,7 +19,7 @@ import ru.tsu.accounts.audit.AuditEntry;
 import ru.tsu.accounts.identity.UserCommandException;
 import ru.tsu.accounts.security.AccountPrincipal;
 
-@RestControllerAdvice(assignableTypes=AccountReadApiController.class)
+@RestControllerAdvice(assignableTypes={AccountReadApiController.class,StatementApiController.class})
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ApiErrorHandler {
  private static final Logger log=LoggerFactory.getLogger(ApiErrorHandler.class);

@@ -1,0 +1,28 @@
+.statement-document .statement-actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin: 1.4rem 0; }
+.statement-document .statement-actions button { margin: 0; }
+.statement-document .statement-table { font-size: .88rem; }
+.statement-document .statement-table td { overflow-wrap: anywhere; }
+.statement-document .statement-text { white-space: pre-line; }
+.statement-document .money { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.statement-document .statement-totals { grid-template-columns: minmax(16rem, 30rem) 1fr; padding-top: 1rem; border-top: 2px solid #172234; }
+.statement-document h2 { font-size: 1.2rem; }
+.statement-document.print-preview { border-color: #8391a4; }
+@media print {
+    @page { size: A4 landscape; margin: 12mm; }
+    body { margin: 0; background: #fff; color: #000; font-size: 9pt; }
+    .no-print, nav, button { display: none !important; }
+    .statement-document.wide { max-width: none; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; }
+    .statement-document h1 { font-size: 15pt; }
+    .statement-document h2 { font-size: 12pt; break-after: avoid; }
+    .statement-document .table-wrap { overflow: visible; }
+    .statement-document table { table-layout: fixed; font-size: 8pt; }
+    .statement-document th, .statement-document td { padding: 5pt; border: 1px solid #777; color: #000; }
+    .statement-document th { background: #fff; }
+    .statement-document thead { display: table-header-group; }
+    .statement-document tr { break-inside: avoid; }
+    .statement-document .money { white-space: normal; overflow-wrap: anywhere; }
+    .statement-document .hint, .statement-document small { color: #333; }
+    .statement-document .statement-details { grid-template-columns: 11rem 1fr; gap: .25rem; }
+    .statement-document .statement-totals { break-inside: avoid; }
+    a { color: #000; text-decoration: none; }
+}
