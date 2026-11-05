@@ -19,9 +19,11 @@ public class CurrentUserFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(CurrentUserFilter.class);
     private final AppUserRepository users;
     private final AuditAttemptService attempts;
+    private final AccessAuditHandler accessHandler;
 
-    public CurrentUserFilter(AppUserRepository users, AuditAttemptService attempts) {
-        this.users = users; this.attempts = attempts;
+    public CurrentUserFilter(AppUserRepository users, AuditAttemptService attempts,
+                             AccessAuditHandler accessHandler) {
+        this.users = users; this.attempts = attempts; this.accessHandler = accessHandler;
     }
 
     @Override
@@ -45,7 +47,9 @@ public class CurrentUserFilter extends OncePerRequestFilter {
                 SecurityContextHolder.clearContext();
                 var session = request.getSession(false);
                 if (session != null) session.invalidate();
-                response.sendRedirect("/login?expired");
+                if (request.getRequestURI().startsWith("/api/v1/"))
+                    accessHandler.unauthenticated(request, response);
+                else response.sendRedirect("/login?expired");
                 return;
             }
         }

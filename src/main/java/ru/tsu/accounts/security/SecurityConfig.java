@@ -9,6 +9,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import ru.tsu.accounts.identity.AppUserRepository;
 import ru.tsu.accounts.audit.AuditAttemptService;
 
@@ -37,13 +40,18 @@ public class SecurityConfig {
                 .anyRequest().authenticated())
             .formLogin(form -> form.loginPage("/login").loginProcessingUrl("/login")
                 .successHandler(authenticationHandlers).failureHandler(authenticationHandlers).permitAll())
-            .exceptionHandling(ex -> ex.accessDeniedHandler(accessHandler))
+            .exceptionHandling(ex -> ex.accessDeniedHandler(accessHandler)
+                .defaultAuthenticationEntryPointFor(new LoginUrlAuthenticationEntryPoint("/login"),
+                    new NegatedRequestMatcher(new AntPathRequestMatcher("/api/v1/**")))
+                .defaultAuthenticationEntryPointFor(
+                    (request,response,error)->accessHandler.unauthenticated(request,response),
+                    new AntPathRequestMatcher("/api/v1/**")))
             .logout(logout -> logout.logoutUrl("/logout").logoutSuccessUrl("/login?logout")
                 .invalidateHttpSession(true).deleteCookies("ACCOUNT_SESSION"))
             .sessionManagement(session -> session.sessionFixation(fixation -> fixation.changeSessionId()))
             .headers(headers -> headers.contentSecurityPolicy(csp -> csp.policyDirectives(
                 "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'")))
-            .addFilterAfter(new CurrentUserFilter(users, attempts), UsernamePasswordAuthenticationFilter.class);
+            .addFilterAfter(new CurrentUserFilter(users, attempts, accessHandler), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }

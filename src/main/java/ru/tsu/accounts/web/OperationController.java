@@ -20,23 +20,28 @@ import ru.tsu.accounts.security.AccountPrincipal;
 public class OperationController {
  private static final Logger log=LoggerFactory.getLogger(OperationController.class);
  private final OperationService operations;
+ private final HistoryQueryService history;
  private final CorrectionService corrections;
  private final OperationPostingService posting;
  private final OperationConfirmation confirmation;
  private final AccountService accounts;
  private final AuditAttemptService attempts;
- public OperationController(OperationService operations,CorrectionService corrections,OperationPostingService posting,
+ public OperationController(OperationService operations,HistoryQueryService history,CorrectionService corrections,OperationPostingService posting,
   OperationConfirmation confirmation,AccountService accounts,AuditAttemptService attempts){
-  this.operations=operations;this.corrections=corrections;this.posting=posting;this.confirmation=confirmation;
+  this.operations=operations;this.history=history;this.corrections=corrections;this.posting=posting;this.confirmation=confirmation;
   this.accounts=accounts;this.attempts=attempts;
  }
  @GetMapping("/accounts/{id}/operations")
  @PreAuthorize("hasAnyRole('OPERATOR','ACCOUNTANT','MANAGER','CLIENT')")
- public String list(@PathVariable UUID id,@RequestParam(defaultValue="0") int page,
+ public String list(@PathVariable UUID id,@RequestParam(defaultValue="") String from,
+  @RequestParam(defaultValue="") String to,@RequestParam(defaultValue="") String kind,
+  @RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size,
   @AuthenticationPrincipal AccountPrincipal actor,Model model){
   model.addAttribute("account",accounts.get(id));
-  model.addAttribute("posted",operations.history(id,page));
+  model.addAttribute("posted",history.search(id,from,to,kind,page,size));
   if(actor.role().equals("ACCOUNTANT"))model.addAttribute("drafts",operations.drafts(id,page));
+  model.addAttribute("from",from);model.addAttribute("to",to);
+  model.addAttribute("kind",kind);model.addAttribute("size",size);
   model.addAttribute("isAccountant",actor.role().equals("ACCOUNTANT"));
   return "operations/list";
  }
@@ -67,7 +72,8 @@ public class OperationController {
  @PreAuthorize("hasAnyRole('OPERATOR','ACCOUNTANT','MANAGER','CLIENT')")
  public String detail(@PathVariable UUID id,@AuthenticationPrincipal AccountPrincipal actor,Model model){
   var op=operations.get(id);
-  model.addAttribute("operation",op);model.addAttribute("account",accounts.get(op.accountId()));
+  model.addAttribute("operation","PREPARED".equals(op.status())?op:history.detail(id));
+  model.addAttribute("account",accounts.get(op.accountId()));
   model.addAttribute("isAccountant",actor.role().equals("ACCOUNTANT"));
   model.addAttribute("corrections",corrections.postedFor(id));
   return "operations/detail";
@@ -153,8 +159,7 @@ public class OperationController {
  @PreAuthorize("hasRole('ACCOUNTANT')")
  public String discardPage(@PathVariable UUID id,@AuthenticationPrincipal AccountPrincipal actor,
   HttpSession session,Model model){
-  var op=operations.get(id);
-  operations.editForm(id);
+  var op=operations.ownedDraftSummary(id);
   model.addAttribute("operation",op);model.addAttribute("account",accounts.get(op.accountId()));
   model.addAttribute("pending",confirmation.prepare(session,actor.id(),id,"DISCARD",op.version(),""));
   return "operations/discard";

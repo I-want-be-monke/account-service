@@ -13,17 +13,14 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.tsu.accounts.audit.AuditEntry;
 import ru.tsu.accounts.audit.AuditService;
 import ru.tsu.accounts.client.Client;
 import ru.tsu.accounts.client.ClientRepository;
-import ru.tsu.accounts.identity.AppUserRepository;
 import ru.tsu.accounts.identity.UserCommandException;
 import ru.tsu.accounts.operation.OperationRepository;
-import ru.tsu.accounts.security.AccountPrincipal;
 
 @Service
 public class AccountService {
@@ -32,16 +29,16 @@ public class AccountService {
     private final AccountRepository accounts;
     private final AccountHistoryRepository history;
     private final ClientRepository clients;
-    private final AppUserRepository users;
+    private final AccountAccessPolicy access;
     private final JdbcTemplate jdbc;
     private final OperationRepository operations;
     private final AuditService audit;
 
     public AccountService(AccountRepository accounts, AccountHistoryRepository history,
-                          ClientRepository clients, AppUserRepository users,
+                          ClientRepository clients, AccountAccessPolicy access,
                           JdbcTemplate jdbc, AuditService audit, OperationRepository operations) {
         this.accounts = accounts; this.history = history; this.clients = clients;
-        this.users = users; this.jdbc = jdbc; this.audit = audit; this.operations = operations;
+        this.access = access; this.jdbc = jdbc; this.audit = audit; this.operations = operations;
     }
 
     @Transactional(readOnly = true)
@@ -58,18 +55,18 @@ public class AccountService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasRole('CLIENT')")
     public Page<AccountSummary> own(int page) {
-        UUID id = ownClientId();
+        UUID id = access.ownClientId();
         return accounts.findByClientId(id, pageable(page)).map(this::summary);
     }
 
     @Transactional(readOnly = true)
     @PreAuthorize("isAuthenticated()")
-    public AccountSummary get(UUID id) { return summary(accessible(id)); }
+    public AccountSummary get(UUID id) { return summary(access.require(id)); }
 
     @Transactional(readOnly = true)
     @PreAuthorize("isAuthenticated()")
     public Page<AccountStatusHistory> history(UUID id, int page) {
-        accessible(id);
+        access.require(id);
         return history.findByAccountId(id,
             PageRequest.of(checkedPage(page), 20, Sort.by("changedAt").ascending().and(Sort.by("id"))));
     }
@@ -142,25 +139,6 @@ public class AccountService {
             throw conflict("Сначала проведите или отбросьте все черновики по счету.");
     }
 
-    private PersonalAccount accessible(UUID id) {
-        AccountPrincipal principal = principal();
-        if ("CLIENT".equals(principal.role())) {
-            UUID ownId = ownClientId();
-            return accounts.findByIdAndClientId(id, ownId).orElseThrow(() -> forbidden());
-        }
-        if (!Set.of("ADMIN", "OPERATOR", "ACCOUNTANT", "MANAGER").contains(principal.role()))
-            throw forbidden();
-        return accounts.findById(id).orElseThrow(() -> missingAccount());
-    }
-
-    private UUID ownClientId() {
-        UUID id = users.findById(principal().id()).orElseThrow(AccountService::forbidden).getClientId();
-        if (id == null) throw forbidden();
-        return id;
-    }
-    private AccountPrincipal principal() {
-        return (AccountPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-    }
     private PageRequest pageable(int page) {
         return PageRequest.of(checkedPage(page), 20,
             Sort.by("openedOn").descending().and(Sort.by("id")));
@@ -189,9 +167,6 @@ public class AccountService {
                                     Map<String, ?> details, UUID requestId) {
         return new AuditEntry(actor, login, "USER", "BUSINESS", action, "ACCOUNT", account.getId().toString(),
             "SUCCESS", null, requestId, before, after, details);
-    }
-    private static UserCommandException forbidden() {
-        return new UserCommandException(HttpStatus.FORBIDDEN, "ACCOUNT_NOT_OWNED", "Счет недоступен.");
     }
     private static UserCommandException missingAccount() {
         return new UserCommandException(HttpStatus.NOT_FOUND, "ACCOUNT_NOT_FOUND", "Счет не найден.");

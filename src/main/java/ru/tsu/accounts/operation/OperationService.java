@@ -23,12 +23,6 @@ public class OperationService {
   this.operations=operations; this.accounts=accounts; this.accountAccess=accountAccess; this.audit=audit;
  }
  @Transactional(readOnly=true)
- @PreAuthorize("hasAnyRole('OPERATOR','ACCOUNTANT','MANAGER','CLIENT')")
- public Page<OperationSummary> history(UUID accountId,int page){
-  accountAccess.get(accountId);
-  return operations.findByAccountIdAndStorageStatus(accountId,"POSTED",page(page)).map(this::summary);
- }
- @Transactional(readOnly=true)
  @PreAuthorize("hasRole('ACCOUNTANT')")
  public Page<OperationSummary> drafts(UUID accountId,int page){
   accountAccess.get(accountId);
@@ -52,6 +46,9 @@ public class OperationService {
   if("CORRECTION".equals(op.getKind()))throw conflict("Для исправления откройте форму исправления.");
   return OperationForm.from(op);
  }
+ @Transactional(readOnly=true)
+ @PreAuthorize("hasRole('ACCOUNTANT')")
+ public OperationSummary ownedDraftSummary(UUID id){return OperationSummary.from(ownedDraft(id));}
  @Transactional(readOnly=true)
  @PreAuthorize("hasRole('ACCOUNTANT')")
  public String readyFingerprint(UUID id){
