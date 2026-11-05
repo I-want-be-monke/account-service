@@ -43,7 +43,7 @@ import ru.tsu.accounts.security.DatabaseUserDetailsService;
 @SpringBootTest(properties={"server.ssl.enabled=false","account.http.enabled=false"})
 @AutoConfigureMockMvc @ActiveProfiles("dev") @Testcontainers
 class OperationPostingIT {
- @Container static final PostgreSQLContainer<?> postgres=new PostgreSQLContainer<>("postgres:17.11-bookworm")
+ @Container static final PostgreSQLContainer<?> postgres=ru.tsu.accounts.support.LocalPostgres.create()
   .withDatabaseName("accounts").withUsername("account_owner").withPassword("test-owner-password")
   .withInitScript("db/test-roles.sql");
  @DynamicPropertySource static void props(DynamicPropertyRegistry p){

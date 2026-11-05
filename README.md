@@ -40,7 +40,7 @@ mvnw.cmd test
 mvnw.cmd verify
 ```
 
-`test` запускает модульные проверки BCrypt, подтверждения и денежных правил. `verify` дополнительно запускает `AuthenticationIT`, `UserManagementIT`, `ClientServiceIT`, `AccountLifecycleIT` и `OperationPostingIT` в **настоящем PostgreSQL Testcontainers**: миграции V1–V4, роли, вход, выход, клиентов, счета, черновики, проведение, права, CSRF, денежные гонки, сверку и откат при сбое обязательного аудита. H2 не используется. Отчеты — `target\surefire-reports` и `target\failsafe-reports`. Сборка для запуска: `mvnw.cmd -DskipTests package`.
+`test` запускает модульные проверки BCrypt, подтверждения и денежных правил. `verify` дополнительно запускает `AuthenticationIT`, `UserManagementIT`, `ClientServiceIT`, `AccountLifecycleIT`, `OperationPostingIT` и `ClientOwnershipIT` в **настоящем PostgreSQL Testcontainers**: миграции V1–V5, роли, вход, выход, клиентов, счета, черновики, проведение, исправления, фильтры истории, изоляцию владельца в HTML/JSON, права, CSRF, денежные гонки, сверку и откат при сбое обязательного аудита. Временные тестовые БД публикуют порт только на `127.0.0.1`; рабочая БД также остается на локальном адресе из Compose. H2 не используется. Отчеты — `target\surefire-reports` и `target\failsafe-reports`. Сборка для запуска: `mvnw.cmd -DskipTests package`.
 
 Перед `mvnw.cmd clean verify` остановите запущенное приложение через `scripts\dev-down.cmd`: Windows не удаляет используемый JAR. Затем выполните `mvnw.cmd clean verify` и снова `scripts\dev-up.cmd`. Остановка не удаляет данные БД.
 

@@ -40,7 +40,7 @@ import ru.tsu.accounts.security.DatabaseUserDetailsService;
 @Testcontainers
 class ClientServiceIT {
     @Container
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17.11-bookworm")
+    static final PostgreSQLContainer<?> postgres = ru.tsu.accounts.support.LocalPostgres.create()
         .withDatabaseName("accounts").withUsername("account_owner")
         .withPassword("test-owner-password").withInitScript("db/test-roles.sql");
     @DynamicPropertySource

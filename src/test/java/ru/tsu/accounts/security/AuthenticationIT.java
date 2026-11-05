@@ -28,7 +28,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 class AuthenticationIT {
     @Container
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17.11-bookworm")
+    static final PostgreSQLContainer<?> postgres = ru.tsu.accounts.support.LocalPostgres.create()
         .withDatabaseName("accounts")
         .withUsername("account_owner")
         .withPassword("test-owner-password")
