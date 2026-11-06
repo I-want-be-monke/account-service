@@ -1,9 +1,10 @@
 param(
-    [Parameter(Mandatory=$true)][ValidateSet('Seed','Reconcile')][string]$Command,
+    [Parameter(Mandatory=$true)][ValidateSet('Seed','Reconcile','Ledger')][string]$Command,
     [ValidateSet('pilot','reduced','smoke')][string]$Profile = 'reduced',
     [ValidateRange(1,999999999)][int]$Seed = 1101,
     [ValidatePattern('^[0-9]{4}-[0-9]{2}$')][string]$ReportMonth = '2026-10',
     [ValidatePattern('^[A-Za-z0-9_-]{1,40}$')][string]$Label = 'before',
+    [ValidatePattern('^[a-f0-9]{8}-[a-f0-9]{3}$')][string]$RunId,
     [string]$EvidenceDirectory = '.local\e11-verification'
 )
 $ErrorActionPreference = 'Stop'
@@ -106,6 +107,15 @@ try {
     }
     $null = New-Item -ItemType Directory -Path $evidence -Force
     $stand = Get-E11Stand
+    if ($Command -eq 'Ledger') {
+        if (-not $RunId) { throw 'Ledger requires the runId from run.properties.' }
+        $path = Join-Path $evidence "ledger-$Label.csv"
+        if (Test-Path -LiteralPath $path) { throw 'Choose a new ledger label to retain previous evidence.' }
+        $raw = Invoke-E11Sql $stand 'run-ledger.sql' @('-v',"runId=$RunId") 660
+        Save-E11Artifact $path $raw
+        Write-Host "Read-only E11 ledger evidence: $path"
+        exit 0
+    }
     if ($Command -eq 'Reconcile') {
         $path = Join-Path $evidence "reconciliation-$Label.json"
         if (Test-Path -LiteralPath $path) { throw 'Choose a new reconciliation label to retain previous evidence.' }

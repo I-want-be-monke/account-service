@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -58,6 +59,11 @@ public class LoadHarness {
     private static final Pattern CSV_ESCAPE = Pattern.compile("[,\"\\r\\n]");
     private static final Pattern REPORT_TOTAL = Pattern.compile("data-total-key=\"([A-Za-z][A-Za-z0-9]*)\"[^>]*>"
         + "\\s*<strong>(-?[0-9]+\\.[0-9]{2})</strong>");
+    private static final Pattern REPORT_ROWS = Pattern.compile("<strong\\s+id=\"total-rows\"[^>]*>\\s*([0-9]+)\\s*</strong>");
+    private static final String REPORT_LABEL = "GET /reports/result ";
+    private static final List<String> SCREEN_ROUTES = List.of("GET /accounts/{id}", "GET /accounts/{id}/operations",
+        "GET /my/accounts", "GET /clients?accountNumber", "GET /accounts?number", "GET /accounts/{id}/statement/result",
+        "GET /accounts/{id}/operations/new", "GET /operations/{id}/confirm");
 
     enum Role {
         ADMIN(2), OPERATOR(60), ACCOUNTANT(40), MANAGER(18), CLIENT(180);
@@ -66,7 +72,7 @@ public class LoadHarness {
         boolean reports() { return this == ADMIN || this == ACCOUNTANT || this == MANAGER; }
     }
     enum ReportType { CHARGES, PAYMENTS, DEBT, MOVEMENT }
-    enum Phase { RAMP, WARMUP, STEADY, REPORT_TAIL, TEARDOWN, TELEMETRY }
+    enum Phase { RAMP, WARMUP, STEADY, REPORT_TAIL, COLD, TEARDOWN, TELEMETRY }
     record Account(UUID id, String number, LocalDate historyStart) {}
     record Actor(Role role, String login, Account account) {}
     record DbAccount(Account account, UUID client, String status) {}
@@ -77,42 +83,60 @@ public class LoadHarness {
     public static void main(String[] args) {
         try {
             if (Arrays.asList(args).contains("--help")) {
-                System.out.println("scripts\\load-test.cmd [--check] [--users 300] [--runs 3] "
-                    + "[--ramp 300] [--warmup 300] [--steady 1200] [--report-tail 180] "
+                System.out.println("scripts\\load-test.cmd [--check] [--users 300] [--runs 1] "
+                    + "[--ramp 300] [--warmup 300] [--steady 1200] [--report-tail 0] "
                     + "[--report-month 2026-10] [--reports-per-type 30] [--seed 1101] "
                     + "[--timeout 60] [--telemetry 15] [--env .local/e11/stand.env] "
                     + "[--tls .local/e11/tls.p12] [--fixtures .local/e11-verification/fixtures.csv] "
                     + "[--output .local/e11-verification/load-unique]");
                 System.out.println("300-user workloads require Docker with at least 4 vCPU and 8000000000 bytes of memory,"
                     + " exactly 200000 accounts and at least 1000000 POSTED operations.");
+                System.out.println("Start each pilot invocation from the same baseline. Reduced runs default to --runs 3 and --report-tail 180.");
+                System.out.println("Use --cold-report CHARGES|PAYMENTS|DEBT|MOVEMENT with --report-month, --fixtures and --output"
+                    + " to run one report request after restarting the isolated services.");
                 return;
             }
             Options options = Options.parse(args);
-            boolean pilot = !options.check() && options.users() == 300;
-            if (pilot) assertPilotResources();
+            if (options.pilot()) {
+                require(options.runs() == 1 && options.ramp() == 300 && options.warmup() == 300
+                    && options.steady() == 1200 && options.tail() == 0,
+                    "A 300-user pilot invocation requires --runs 1 --ramp 300 --warmup 300 --steady 1200 --report-tail 0.");
+                require(options.telemetry() > 0, "A 300-user pilot invocation requires telemetry.");
+            }
+            if (options.pilot() || options.coldReport() != null) assertPilotResources();
             assertIsolated();
             Properties settings = new Properties();
             try (var reader = Files.newBufferedReader(options.env())) { settings.load(reader); }
             require(DATABASE.equals(settings.getProperty("DB_NAME")), "Environment must name " + DATABASE);
-            Fixture fixture = fixtures(options.fixtures(), options.month());
-            if (pilot) {
+            Fixture fixture = options.coldReport() == null ? fixtures(options.fixtures(), options.month()) : coldFixture(options);
+            if (options.pilot()) {
                 require(fixture.accounts() == 200_000 && fixture.posted() >= 1_000_000,
-                    "300-user workload requires 200000 accounts and at least 1000000 POSTED operations. Actual: "
+                    "Pilot measurements require 200000 accounts and at least 1000000 POSTED operations. Actual: "
                         + fixture.accounts() + " accounts, " + fixture.posted() + " POSTED.");
             }
             SSLContext tls = trust(options.tls(), property(settings, "TLS_PASSWORD"));
-            List<Actor> actors = chooseActors(fixture.actors(), options.users(), options.seed());
+            List<Actor> actors = options.coldReport() == null ? chooseActors(fixture.actors(), options.users(), options.seed())
+                : fixture.actors();
             for (Actor actor : actors) property(settings, "DEMO_" + actor.role() + "_PASSWORD");
             try (HttpClient client = http(tls)) {
                 var ready = client.send(HttpRequest.newBuilder(BASE.resolve("/actuator/health/readiness"))
                     .timeout(Duration.ofSeconds(10)).GET().build(), HttpResponse.BodyHandlers.ofString());
                 require(ready.statusCode() == 200 && ready.body().contains("\"UP\""), "E11 HTTPS readiness is not UP");
             }
-            System.out.printf("Guard OK. %s / %s / %s, %d accounts, %d POSTED, report month %s (%d POSTED).%n",
-                PROJECT, DATABASE, BASE, fixture.accounts(), fixture.posted(), options.month(), fixture.monthPosted());
+            String monthEvidence = options.coldReport() == null ? fixture.monthPosted() + " POSTED"
+                : "counts from seed marker, no live ledger scan";
+            System.out.printf("Guard OK. %s / %s / %s, %d accounts, %d POSTED, report month %s (%s).%n",
+                PROJECT, DATABASE, BASE, fixture.accounts(), fixture.posted(), options.month(), monthEvidence);
             if (options.check()) return;
             Path output = localOutput(options.output());
             writeProfile(output, options, fixture, actors);
+            if (options.coldReport() != null) {
+                boolean successful = executeColdReport(options, settings, tls, actors.getFirst(),
+                    Files.createDirectory(output.resolve("run-01")));
+                System.out.println("Evidence: " + output);
+                if (!successful) System.exit(2);
+                return;
+            }
             boolean successful = true;
             for (int i = 1; i <= options.runs(); i++) {
                 assertIsolated();
@@ -145,33 +169,82 @@ public class LoadHarness {
                     delay, options.seed() + 1000003L * run + ordinal, evidence)));
             }
             if (options.telemetry() > 0) {
-                futures.add(workers.submit(() -> sampleTelemetry(state, runPath)));
+                futures.add(workers.submit(() -> sampleTelemetry(state, runPath, client)));
             }
             for (var future : futures) future.get();
             evidence.writeSummary(runPath, options.steady());
             long screenP95 = evidence.p95("STEADY:screen");
             long slowScreenRoutes = evidence.stats.entrySet().stream().filter(e -> e.getKey().startsWith("STEADY:screen-route:"))
                 .filter(e -> e.getValue().percentile(95) > 2000).count();
+            long missingScreenRoutes = SCREEN_ROUTES.stream().filter(route -> evidence.p95("STEADY:screen-route:" + route) < 0).count();
             long slowReportTypes = evidence.stats.entrySet().stream().filter(e -> e.getKey().startsWith("REPORT:route:"))
                 .filter(e -> e.getValue().buckets.lastKey() > 10000).count();
+            var steadyReportCounts = new EnumMap<ReportType, Long>(ReportType.class);
+            for (ReportType type : ReportType.values()) {
+                var samples = evidence.stats.get("STEADY:completed-report-route:" + REPORT_LABEL + type);
+                steadyReportCounts.put(type, samples == null ? 0L : samples.count - samples.errors);
+            }
             String facts = "runId=" + state.unique + "\nrequestedUsers=" + actors.size()
                 + "\nuniqueAuthenticatedSessions=" + state.cookies.size()
                 + "\nreadyBySteady=" + state.readyBySteady.get() + "\npeakActiveUsers=" + state.peak.get()
+                + "\nsteadyStartEpochMs=" + state.timestampMillis(state.steadyStart)
+                + "\nsteadyEndEpochMs=" + state.timestampMillis(state.steadyEnd)
+                + "\nsteadyUsersWithSuccessfulRequests=" + evidence.steadyUsers.size()
+                + "\nleftBeforeSteadyEnd=" + state.leftBeforeSteadyEnd.get()
                 + "\nmaxParallelReports=" + state.reportPeak.get() + "\nplannedReportSamples="
                 + 4 * options.reportsPerType() + "\nremainingReportSamples=" + state.remaining.get()
                 + "\nhttpUnexpectedErrors=" + evidence.errors + "\nhttp5xx=" + evidence.serverErrors
                 + "\ntelemetryErrors=" + evidence.telemetryErrors + "\nsteadyScreenP95Ms=" + screenP95
-                + "\nsteadyScreenRoutesOver2Seconds=" + slowScreenRoutes + "\nreportTypesOver10Seconds=" + slowReportTypes
+                + "\nsteadyScreenRoutesOver2Seconds=" + slowScreenRoutes + "\nsteadyScreenRoutesMissing=" + missingScreenRoutes
+                + "\nreportTypesOver10Seconds=" + slowReportTypes
                 + "\nsuccessfulFinancialActions=" + evidence.successfulFinancialActions
                 + "\nscenarioErrors=" + evidence.scenarioErrors + "\n";
+            for (var entry : steadyReportCounts.entrySet()) {
+                facts += "steadyCompletedReports." + entry.getKey() + "=" + entry.getValue() + "\n";
+            }
             Files.writeString(runPath.resolve("run.properties"), facts);
             System.out.printf("Authenticated %d/%d, ready by steady %d, report samples %d/%d, HTTP 5xx %d, unexpected HTTP errors %d.%n",
                 state.cookies.size(), actors.size(), state.readyBySteady.get(),
                 4 * options.reportsPerType() - state.remaining.get(), 4 * options.reportsPerType(),
                 evidence.serverErrors, evidence.errors);
-            return state.cookies.size() == actors.size() && state.readyBySteady.get() == actors.size()
+            boolean steadyPilotComplete = !options.pilot() || (state.leftBeforeSteadyEnd.get() == 0
+                && evidence.steadyUsers.size() == actors.size() && missingScreenRoutes == 0
+                && steadyReportCounts.values().stream().allMatch(count -> count >= options.reportsPerType()));
+            return steadyPilotComplete && state.cookies.size() == actors.size() && state.readyBySteady.get() == actors.size()
                 && state.remaining.get() == 0 && evidence.errors == 0 && evidence.scenarioErrors == 0
                 && screenP95 >= 0 && screenP95 <= 2000 && slowScreenRoutes == 0 && slowReportTypes == 0;
+        }
+    }
+
+    private static boolean executeColdReport(Options options, Properties settings, SSLContext tls, Actor actor, Path runPath)
+        throws IOException {
+        try (HttpClient client = http(tls); Evidence evidence = new Evidence(runPath)) {
+            var state = new RunState(options, List.of(actor));
+            var session = new Session(client, actor, state, evidence);
+            ReportType type = options.coldReport();
+            String action = "report_" + type;
+            try {
+                session.login(property(settings, "DEMO_" + actor.role() + "_PASSWORD"), Phase.COLD);
+                state.active.set(1);
+                session.report(new ReportTask(type, 1), Phase.COLD);
+                evidence.scenario(actor, Phase.COLD, action, true);
+            } catch (StepFailure failed) {
+                evidence.scenario(actor, Phase.COLD, action, false);
+            } finally {
+                if (state.active.getAndSet(0) == 1) {
+                    try { session.logout(); }
+                    catch (StepFailure failed) { evidence.scenario(actor, Phase.TEARDOWN, "logout", false); }
+                }
+            }
+            evidence.writeSummary(runPath, options.steady());
+            var samples = evidence.stats.get("REPORT:route:" + REPORT_LABEL + type);
+            long maxMs = samples == null ? -1 : samples.buckets.lastKey();
+            Files.writeString(runPath.resolve("run.properties"), "runId=" + state.unique + "\nrequestedUsers=1"
+                + "\nuniqueAuthenticatedSessions=" + state.cookies.size() + "\ncoldReport=" + type + "\nmaxReportMs=" + maxMs
+                + "\nhttpUnexpectedErrors=" + evidence.errors + "\nhttp5xx=" + evidence.serverErrors
+                + "\nscenarioErrors=" + evidence.scenarioErrors + "\n");
+            return state.cookies.size() == 1 && samples != null && samples.count == 1 && maxMs <= 10_000
+                && evidence.errors == 0 && evidence.scenarioErrors == 0;
         }
     }
 
@@ -189,8 +262,8 @@ public class LoadHarness {
             run.peak.accumulateAndGet(active, Math::max);
             if (System.nanoTime() <= run.steadyStart) run.readyBySteady.incrementAndGet();
             if (session.actor.role() == Role.ADMIN) run.observer.compareAndSet(null, session);
-            while (run.inWorkload()) {
-                Phase phase = run.phase();
+            Phase phase;
+            while ((phase = run.workloadPhase()) != null) {
                 ReportTask report = run.reportUsers.contains(session.actor.login()) && run.isMeasurement(phase)
                     ? run.reports.poll() : null;
                 if (report != null) {
@@ -233,6 +306,7 @@ public class LoadHarness {
             Thread.currentThread().interrupt();
         } finally {
             if (authenticated) {
+                if (System.nanoTime() < run.steadyEnd) run.leftBeforeSteadyEnd.incrementAndGet();
                 run.observer.compareAndSet(session, null);
                 run.active.decrementAndGet();
                 try { session.logout(); }
@@ -243,13 +317,16 @@ public class LoadHarness {
 
     static final class RunState {
         final Options options;
-        final long start = System.nanoTime() + TimeUnit.SECONDS.toNanos(1);
+        final long clockStart = System.nanoTime();
+        final long epochStartMillis = System.currentTimeMillis();
+        final long start = clockStart + TimeUnit.SECONDS.toNanos(1);
         final long rampEnd, steadyStart, steadyEnd, tailEnd;
         final double financeProbability, searchProbability;
         final Set<String> reportUsers;
         final ConcurrentLinkedQueue<ReportTask> reports = new ConcurrentLinkedQueue<>();
         final Set<String> cookies = ConcurrentHashMap.newKeySet();
         final AtomicInteger active = new AtomicInteger(), peak = new AtomicInteger(), readyBySteady = new AtomicInteger();
+        final AtomicInteger leftBeforeSteadyEnd = new AtomicInteger();
         final AtomicInteger remaining, reportsInFlight = new AtomicInteger(), reportPeak = new AtomicInteger();
         final AtomicReference<Session> observer = new AtomicReference<>();
         final String unique = UUID.randomUUID().toString().substring(0, 12);
@@ -280,18 +357,24 @@ public class LoadHarness {
             remaining = new AtomicInteger(reports.size());
         }
 
-        Phase phase() {
-            long now = System.nanoTime();
+        Phase phase() { return phase(System.nanoTime()); }
+
+        Phase phase(long now) {
             if (now < rampEnd) return Phase.RAMP;
             if (now < steadyStart) return Phase.WARMUP;
             if (now < steadyEnd) return Phase.STEADY;
             return Phase.REPORT_TAIL;
         }
 
-        boolean inWorkload() {
+        Phase workloadPhase() {
             long now = System.nanoTime();
-            return now < steadyEnd || (now < tailEnd && remaining.get() > 0);
+            if (now >= steadyEnd && (now >= tailEnd || remaining.get() == 0)) return null;
+            return phase(now);
         }
+
+        boolean inWorkload() { return workloadPhase() != null; }
+
+        long timestampMillis(long nanoTime) { return epochStartMillis + Math.floorDiv(nanoTime - clockStart, 1_000_000); }
 
         boolean isMeasurement(Phase phase) { return phase == Phase.STEADY || phase == Phase.REPORT_TAIL; }
     }
@@ -380,11 +463,9 @@ public class LoadHarness {
                 case DEBT -> "asOf=" + month.atEndOfMonth();
                 case MOVEMENT -> "from=" + month.atDay(1) + "&to=" + month.atEndOfMonth();
             };
-            int expectedColumns = report.type() == ReportType.MOVEMENT ? 8 : 3;
-            var response = request(phase, "report", "GET /reports/result " + report.type(),
-                "/reports/result?type=" + report.type() + "&" + dates + "&size=20", null, 200,
-                item -> reportTotals(item).size() == expectedColumns, report.ordinal() == 1 ? "first-of-run" : "repeat");
-            evidence.report(actor, phase, report, reportTotals(response));
+            String series = phase == Phase.COLD ? "cold-first" : (report.ordinal() == 1 ? "first-of-run" : "repeat");
+            request(phase, "report", REPORT_LABEL + report.type(),
+                "/reports/result?type=" + report.type() + "&" + dates + "&size=20", null, 200, item -> true, series, report);
         }
 
         private void get(Phase phase, String category, String label, String path) throws StepFailure {
@@ -394,10 +475,21 @@ public class LoadHarness {
         HttpResponse<byte[]> request(Phase phase, String category, String label, String path, String form,
                                      int expected, Predicate<HttpResponse<byte[]>> validation, String series)
             throws StepFailure {
+            return request(phase, category, label, path, form, expected, validation, series, null);
+        }
+
+        private HttpResponse<byte[]> request(Phase phase, String category, String label, String path, String form,
+                                            int expected, Predicate<HttpResponse<byte[]>> validation, String series,
+                                            ReportTask report) throws StepFailure {
             URI uri = BASE.resolve(path);
             if (!sameOrigin(uri)) throw new IllegalArgumentException("Request destination was not E11 localhost");
             long start = System.nanoTime();
-            long stamp = System.currentTimeMillis();
+            long stamp = run.timestampMillis(start);
+            Phase measuredPhase = switch (phase) {
+                case COLD, TEARDOWN, TELEMETRY -> phase;
+                default -> run.phase(start);
+            };
+            int active = run.active.get();
             int sent = form == null ? 0 : form.getBytes(StandardCharsets.UTF_8).length;
             HttpResponse<byte[]> response;
             try {
@@ -412,18 +504,25 @@ public class LoadHarness {
                 response = client.send(request.build(), HttpResponse.BodyHandlers.ofByteArray());
                 cookies.put(uri, response.headers().map());
             } catch (IOException | InterruptedException failure) {
-                evidence.http(stamp, elapsed(start), phase, category, label, actor, 0, false,
-                    failure.getClass().getSimpleName(), 0, sent, run.active.get(), uri, series, "");
+                evidence.http(stamp, elapsed(start, System.nanoTime()), measuredPhase, category, label, actor, 0, false,
+                    failure.getClass().getSimpleName(), 0, sent, active, uri, series, "", false);
                 if (failure instanceof InterruptedException) Thread.currentThread().interrupt();
                 throw new StepFailure();
             }
-            long duration = elapsed(start);
-            boolean success = response.statusCode() == expected && validation.test(response);
-            evidence.http(stamp, duration, phase, category, label, actor, response.statusCode(), success,
+            long finish = System.nanoTime();
+            long duration = elapsed(start, finish);
+            var totals = report == null ? null : reportTotals(response);
+            boolean validReport = report == null
+                || (totals.containsKey("totalRows") && totals.size() == (report.type() == ReportType.MOVEMENT ? 9 : 4));
+            boolean optionalGcSample = measuredPhase == Phase.TELEMETRY && response.statusCode() == 404
+                && uri.getPath().equals("/actuator/metrics/jvm.gc.pause");
+            boolean success = optionalGcSample || (response.statusCode() == expected && validation.test(response) && validReport);
+            evidence.http(stamp, duration, measuredPhase, category, label, actor, response.statusCode(), success,
                 success ? "" : "Expected HTTP " + expected + " and matching response", response.body().length,
-                sent, run.active.get(), uri, series, response.headers().firstValue("X-Request-ID")
-                    .filter(value -> value.matches("[0-9a-fA-F-]{36}")).orElse(""));
+                sent, active, uri, series, response.headers().firstValue("X-Request-ID")
+                    .filter(value -> value.matches("[0-9a-fA-F-]{36}")).orElse(""), finish <= run.steadyEnd);
             if (!success) throw new StepFailure();
+            if (report != null) evidence.report(actor, measuredPhase, report, totals, stamp);
             return response;
         }
     }
@@ -433,6 +532,7 @@ public class LoadHarness {
     static final class Evidence implements AutoCloseable {
         private final BufferedWriter jtl, scenarios, reportTotals;
         private final Map<String, Stats> stats = new TreeMap<>();
+        private final Set<String> steadyUsers = new HashSet<>();
         long errors, serverErrors, scenarioErrors, telemetryErrors, successfulFinancialActions;
 
         Evidence(Path path) throws IOException {
@@ -447,7 +547,7 @@ public class LoadHarness {
 
         synchronized void http(long stamp, long millis, Phase phase, String category, String label, Actor actor,
                                int status, boolean ok, String failure, int bytes, int sent, int active, URI uri, String series,
-                               String requestId) {
+                               String requestId, boolean finishedBySteadyEnd) {
             try {
                 jtl.write(csv(stamp, millis, label, status == 0 ? "NON_HTTP" : status, ok ? "OK" : "Unexpected",
                     actor.login(), "text", ok, failure, bytes, sent, active, active, uri, phase, category, series, requestId));
@@ -463,6 +563,7 @@ public class LoadHarness {
             add(byPhase + "category:" + category, stamp, millis, status, ok);
             add(byPhase + "route:" + label, stamp, millis, status, ok);
             if (phase == Phase.STEADY && Set.of("view", "search", "statement", "finance").contains(category)) {
+                if (ok && finishedBySteadyEnd) steadyUsers.add(actor.login());
                 add("STEADY:profile", stamp, millis, status, ok);
                 if (label.startsWith("GET ")) {
                     add("STEADY:screen", stamp, millis, status, ok);
@@ -472,6 +573,10 @@ public class LoadHarness {
             if (category.equals("report")) {
                 add("REPORT:route:" + label, stamp, millis, status, ok);
                 add("REPORT:series:" + series + ":" + label, stamp, millis, status, ok);
+                if (phase == Phase.STEADY && finishedBySteadyEnd) {
+                    add("STEADY:completed-report-route:" + label, stamp, millis, status, ok);
+                    if (ok) steadyUsers.add(actor.login());
+                }
             }
         }
 
@@ -482,8 +587,7 @@ public class LoadHarness {
             if (ok && action.equals("finance")) successfulFinancialActions++;
         }
 
-        synchronized void report(Actor actor, Phase phase, ReportTask task, Map<String, String> totals) {
-            long stamp = System.currentTimeMillis();
+        synchronized void report(Actor actor, Phase phase, ReportTask task, Map<String, String> totals, long stamp) {
             try {
                 for (var entry : totals.entrySet()) reportTotals.write(csv(stamp, actor.login(), phase, task.type(),
                     task.ordinal(), entry.getKey(), entry.getValue()));
@@ -539,15 +643,17 @@ public class LoadHarness {
         }
     }
 
-    private static void sampleTelemetry(RunState run, Path path) {
+    private static void sampleTelemetry(RunState run, Path path, HttpClient client) {
         try (var resources = Files.newBufferedWriter(path.resolve("telemetry.csv"), StandardOpenOption.CREATE_NEW);
              var metrics = Files.newBufferedWriter(path.resolve("actuator-metrics.jsonl"), StandardOpenOption.CREATE_NEW)) {
             resources.write("time,phase,activeUsers,hostCpuPercent,generatorCpuPercent,hostFreeRamBytes,"
-                + "generatorHeapBytes,freeDiskBytes,pgActivity,containerStats\n");
+                + "generatorHeapBytes,freeDiskBytes,pgActivity,containerStats,readiness\n");
             var os = (com.sun.management.OperatingSystemMXBean) java.lang.management.ManagementFactory.getOperatingSystemMXBean();
             while (run.inWorkload()) {
-                Instant time = Instant.now();
-                Phase phase = run.phase();
+                int activeUsers = run.active.get();
+                long sampleStart = System.nanoTime();
+                Instant time = Instant.ofEpochMilli(run.timestampMillis(sampleStart));
+                Phase phase = run.phase(sampleStart);
                 String activity = safeProbe(() -> sql("""
                     select json_build_object('active',count(*) filter(where state='active'),
                         'lockWaiters',count(*) filter(where wait_event_type='Lock'),
@@ -561,21 +667,27 @@ public class LoadHarness {
                     """));
                 String containers = safeProbe(() -> docker("stats", "--no-stream", "--format",
                     "{{.Name}} {{.CPUPerc}} {{.MemUsage}} {{.BlockIO}}", APP, DB));
+                String readiness = safeProbe(() -> {
+                    var response = client.send(HttpRequest.newBuilder(BASE.resolve("/actuator/health/readiness"))
+                        .timeout(Duration.ofSeconds(5)).GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+                    return response.statusCode() + "|" + text(response).strip();
+                });
                 long heap = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-                resources.write(csv(time, phase, run.active.get(), cpu(os.getCpuLoad()), cpu(os.getProcessCpuLoad()),
-                    os.getFreeMemorySize(), heap, Files.getFileStore(path).getUsableSpace(), activity, containers));
+                resources.write(csv(time, phase, activeUsers, cpu(os.getCpuLoad()), cpu(os.getProcessCpuLoad()),
+                    os.getFreeMemorySize(), heap, Files.getFileStore(path).getUsableSpace(), activity, containers, readiness));
                 resources.flush();
                 var observer = run.observer.get();
                 if (observer != null) {
                     for (String metric : List.of("hikaricp.connections.active", "hikaricp.connections.pending",
-                        "hikaricp.connections.acquire", "jvm.memory.used?tag=area:heap", "jvm.memory.max?tag=area:heap")) {
+                        "hikaricp.connections.acquire", "jvm.memory.used?tag=area:heap", "jvm.memory.max?tag=area:heap",
+                        "jvm.gc.pause")) {
                         if (!run.inWorkload()) break;
                         String payload = "null";
                         try {
                             var response = observer.request(Phase.TELEMETRY, "telemetry", "GET /actuator/metrics",
                                 "/actuator/metrics/" + metric, null, 200,
                                 item -> text(item).strip().startsWith("{"), "");
-                            payload = text(response).strip();
+                            if (response.statusCode() == 200) payload = text(response).strip();
                         } catch (StepFailure ignored) { }
                         metrics.write("{\"time\":\"" + Instant.now() + "\",\"metric\":\"" + metric
                             + "\",\"payload\":" + payload + "}\n");
@@ -638,10 +750,42 @@ public class LoadHarness {
         require(sql("select current_database()").equals(DATABASE), "Connected database is not " + DATABASE);
     }
 
-    private static Fixture fixtures(Path path, YearMonth month) throws Exception {
+    private static List<String> fixtureRows(Path path) throws IOException {
         var lines = Files.readAllLines(path, StandardCharsets.UTF_8);
         require(!lines.isEmpty() && lines.getFirst().replace("\ufeff", "")
             .equals("role,login,accountId,accountNumber,historyStartOn"), "Unexpected fixture header");
+        return lines.subList(1, lines.size());
+    }
+
+    private static Fixture coldFixture(Options options) throws Exception {
+        require(options.month().isBefore(YearMonth.now(BUSINESS_ZONE)), "A cold report requires a completed calendar month.");
+        // The baseline is reconciled before the restart. Do not scan the ledger or the read pool here.
+        var marker = sql("""
+            select details->>'accounts',details->>'operations',details->>'reportMonth',details->>'seed'
+            from audit_event where object_type='E11_DATASET' and action='E11_SEED_APPLIED'
+                and result='SUCCESS' and details->>'profile'='pilot' limit 2
+            """).lines().toList();
+        require(marker.size() == 1, "Expected exactly one pilot seed marker before the cold report.");
+        String[] counts = marker.getFirst().split("\\|", -1);
+        require(counts.length == 4 && counts[0].equals("200000") && counts[1].equals("1000000")
+            && counts[2].equals(options.month().toString()) && counts[3].equals(Long.toString(options.seed())),
+            "Pilot seed marker does not match the required counts, report month or seed.");
+
+        String[] fields = fixtureRows(options.fixtures()).stream().filter(row -> row.startsWith("ACCOUNTANT,"))
+            .findFirst().orElseThrow(() -> new IllegalArgumentException("Missing cold-report accountant fixture.")).split(",", -1);
+        require(fields.length == 5 && fields[1].matches("e11-accountant-[0-9]{3}"), "Invalid cold-report accountant fixture.");
+        var account = new Account(UUID.fromString(fields[2]), fields[3], LocalDate.parse(fields[4]));
+        String identity = sql("select a.account_number,a.history_start_on from app_user u cross join personal_account a"
+            + " where u.login='" + fields[1] + "' and u.status='ACTIVE' and u.role_code='ACCOUNTANT'"
+            + " and a.id='" + account.id() + "'::uuid and a.status='OPEN'"
+            + " and a.account_number between 'LS-8000000181' and 'LS-8000000220'");
+        require(identity.equals(account.number() + "|" + account.historyStart()), "Cold-report fixture does not match the pilot database.");
+        return new Fixture(List.of(new Actor(Role.ACCOUNTANT, fields[1], account)), List.of(),
+            Long.parseLong(counts[0]), Long.parseLong(counts[1]), -1);
+    }
+
+    private static Fixture fixtures(Path path, YearMonth month) throws Exception {
+        var rows = fixtureRows(path);
         var users = new LinkedHashMap<String, DbUser>();
         for (String row : sql("select login,role_code,client_id from app_user where login like 'e11-%' and status='ACTIVE'")
             .lines().toList()) {
@@ -660,7 +804,7 @@ public class LoadHarness {
         var actors = new ArrayList<Actor>();
         var seenUsers = new java.util.HashSet<String>();
         var seenAccounts = new java.util.HashSet<UUID>();
-        for (String row : lines.subList(1, lines.size())) {
+        for (String row : rows) {
             if (row.isBlank()) continue;
             var f = row.split(",", -1);
             require(f.length == 5, "Malformed synthetic fixture row");
@@ -772,10 +916,13 @@ public class LoadHarness {
         Files.writeString(output.resolve("profile.properties"), "startedAt=" + Instant.now() + "\nproject=" + PROJECT
             + "\ndatabase=" + DATABASE + "\nurl=" + BASE + "\njava=" + System.getProperty("java.version")
             + "\naccounts=" + fixture.accounts() + "\nposted=" + fixture.posted() + "\nreportMonth=" + options.month()
-            + "\nmonthPosted=" + fixture.monthPosted() + "\nseed=" + options.seed() + "\nusers=" + actors.size()
+            + "\nmonthPosted=" + (options.coldReport() == null ? fixture.monthPosted() : "NOT_MEASURED")
+            + "\nseed=" + options.seed() + "\nusers=" + actors.size()
             + "\nruns=" + options.runs() + "\nrampSeconds=" + options.ramp() + "\nwarmupSeconds=" + options.warmup()
             + "\nsteadySeconds=" + options.steady() + "\nreportTailSeconds=" + options.tail()
-            + "\nreportsPerType=" + options.reportsPerType() + "\nthinkMillis=1000..3000\nreadPool="
+            + "\nreportsPerType=" + options.reportsPerType()
+            + (options.coldReport() == null ? "\nthinkMillis=1000..3000"
+                : "\ncoldReport=" + options.coldReport() + "\ncountsSource=E11_SEED_APPLIED") + "\nreadPool="
             + fixture.readPool().size() + "\nfixtureHotShare=0.2\n" + roles + "\n");
     }
 
@@ -795,14 +942,17 @@ public class LoadHarness {
         if (remaining > 0) TimeUnit.NANOSECONDS.sleep(remaining);
     }
 
-    private static long elapsed(long start) { return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start); }
+    private static long elapsed(long start, long finish) { return Math.ceilDiv(finish - start, 1_000_000); }
 
     private static String text(HttpResponse<byte[]> response) { return new String(response.body(), StandardCharsets.UTF_8); }
 
     private static Map<String, String> reportTotals(HttpResponse<byte[]> response) {
         var totals = new LinkedHashMap<String, String>();
-        var matches = REPORT_TOTAL.matcher(text(response));
+        String html = text(response);
+        var matches = REPORT_TOTAL.matcher(html);
         while (matches.find()) totals.put(matches.group(1), matches.group(2));
+        var rows = REPORT_ROWS.matcher(html);
+        if (rows.find()) totals.put("totalRows", rows.group(1));
         return totals;
     }
 
@@ -881,7 +1031,8 @@ public class LoadHarness {
     }
 
     record Options(boolean check, int users, int runs, int ramp, int warmup, int steady, int tail, int reportsPerType,
-                   int timeout, int telemetry, long seed, YearMonth month, Path env, Path tls, Path fixtures, Path output) {
+                   int timeout, int telemetry, long seed, YearMonth month, Path env, Path tls, Path fixtures, Path output,
+                   ReportType coldReport) {
         static Options parse(String[] arguments) {
             var values = new LinkedHashMap<String, String>();
             boolean check = false;
@@ -890,21 +1041,30 @@ public class LoadHarness {
                 if (key.equals("--check")) { check = true; continue; }
                 require(i + 1 < arguments.length && Set.of("--users", "--runs", "--ramp", "--warmup", "--steady",
                     "--report-tail", "--reports-per-type", "--timeout", "--telemetry", "--seed", "--report-month",
-                    "--env", "--tls", "--fixtures", "--output").contains(key), "Unknown or incomplete option " + key);
+                    "--env", "--tls", "--fixtures", "--output", "--cold-report").contains(key), "Unknown or incomplete option " + key);
                 require(values.putIfAbsent(key, arguments[++i]) == null, "Repeated option " + key);
             }
             Path output = Path.of(values.getOrDefault("--output", ".local/e11-verification/load-"
                 + Instant.now().toString().replace(':', '-') + "-" + UUID.randomUUID().toString().substring(0, 6)));
-            return new Options(check, number(values, "--users", 300, 5, 300), number(values, "--runs", 3, 1, 10),
-                number(values, "--ramp", 300, 0, 3600), number(values, "--warmup", 300, 0, 3600),
-                number(values, "--steady", 1200, 1, 7200), number(values, "--report-tail", 180, 0, 1800),
-                number(values, "--reports-per-type", 30, 30, 300), number(values, "--timeout", 60, 1, 300),
-                number(values, "--telemetry", 15, 0, 120), Long.parseLong(values.getOrDefault("--seed", "1101")),
+            ReportType coldReport = values.containsKey("--cold-report") ? ReportType.valueOf(values.get("--cold-report")) : null;
+            boolean cold = coldReport != null;
+            require(!cold || (!check && Set.of("--users", "--runs", "--ramp", "--warmup", "--steady", "--report-tail",
+                "--reports-per-type", "--telemetry").stream().noneMatch(values::containsKey)),
+                "--cold-report cannot be combined with --check or workload controls.");
+            int users = cold ? 1 : number(values, "--users", 300, 5, 300);
+            return new Options(check, users, number(values, "--runs", cold || users == 300 ? 1 : 3, 1, 10),
+                number(values, "--ramp", cold ? 0 : 300, 0, 3600), number(values, "--warmup", cold ? 0 : 300, 0, 3600),
+                cold ? 0 : number(values, "--steady", 1200, 1, 7200),
+                number(values, "--report-tail", cold || users == 300 ? 0 : 180, 0, 1800),
+                cold ? 1 : number(values, "--reports-per-type", 30, 30, 300), number(values, "--timeout", 60, 1, 300),
+                number(values, "--telemetry", cold ? 0 : 15, 0, 120), Long.parseLong(values.getOrDefault("--seed", "1101")),
                 YearMonth.parse(values.getOrDefault("--report-month", "2026-10")),
                 Path.of(values.getOrDefault("--env", ".local/e11/stand.env")),
                 Path.of(values.getOrDefault("--tls", ".local/e11/tls.p12")),
-                Path.of(values.getOrDefault("--fixtures", ".local/e11-verification/fixtures.csv")), output);
+                Path.of(values.getOrDefault("--fixtures", ".local/e11-verification/fixtures.csv")), output, coldReport);
         }
+
+        boolean pilot() { return !check && users == 300; }
 
         private static int number(Map<String, String> values, String key, int fallback, int min, int max) {
             int result = Integer.parseInt(values.getOrDefault(key, Integer.toString(fallback)));
