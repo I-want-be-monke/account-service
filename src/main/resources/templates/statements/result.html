@@ -27,7 +27,7 @@
 <a th:href="@{/api/v1/accounts/{id}/statement(id=${statement.accountId},from=${statement.from},to=${statement.to})}">Получить JSON</a>
 </div>
 <h2>Проведённые движения</h2>
-<div class="table-wrap"><table class="statement-table">
+<div class="table-wrap" tabindex="0" role="region" aria-label="Таблица проведённых движений"><table class="statement-table">
 <thead><tr><th>Дата / вид</th><th>Документ / связь</th><th>Основание / причина</th><th class="money">Сумма, ₽</th><th class="money">Влияние на сальдо, ₽</th><th class="money">Остаток после строки, ₽</th></tr></thead>
 <tbody>
 <tr th:each="o : ${statement.operations}" th:attr="data-operation-id=${o.id}">

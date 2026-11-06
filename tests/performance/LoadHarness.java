@@ -83,15 +83,24 @@ public class LoadHarness {
                     + "[--timeout 60] [--telemetry 15] [--env .local/e11/stand.env] "
                     + "[--tls .local/e11/tls.p12] [--fixtures .local/e11-verification/fixtures.csv] "
                     + "[--output .local/e11-verification/load-unique]");
+                System.out.println("300-user workloads require Docker with at least 4 vCPU and 8000000000 bytes of memory,"
+                    + " exactly 200000 accounts and at least 1000000 POSTED operations.");
                 return;
             }
             Options options = Options.parse(args);
+            boolean pilot = !options.check() && options.users() == 300;
+            if (pilot) assertPilotResources();
             assertIsolated();
             Properties settings = new Properties();
             try (var reader = Files.newBufferedReader(options.env())) { settings.load(reader); }
             require(DATABASE.equals(settings.getProperty("DB_NAME")), "Environment must name " + DATABASE);
-            SSLContext tls = trust(options.tls(), property(settings, "TLS_PASSWORD"));
             Fixture fixture = fixtures(options.fixtures(), options.month());
+            if (pilot) {
+                require(fixture.accounts() == 200_000 && fixture.posted() >= 1_000_000,
+                    "300-user workload requires 200000 accounts and at least 1000000 POSTED operations. Actual: "
+                        + fixture.accounts() + " accounts, " + fixture.posted() + " POSTED.");
+            }
+            SSLContext tls = trust(options.tls(), property(settings, "TLS_PASSWORD"));
             List<Actor> actors = chooseActors(fixture.actors(), options.users(), options.seed());
             for (Actor actor : actors) property(settings, "DEMO_" + actor.role() + "_PASSWORD");
             try (HttpClient client = http(tls)) {
@@ -588,6 +597,17 @@ public class LoadHarness {
     }
 
     private static String cpu(double value) { return value < 0 ? "UNAVAILABLE" : decimal(100 * value); }
+
+    private static void assertPilotResources() throws Exception {
+        String reported = docker("info", "--format", "{{.NCPU}}|{{.MemTotal}}");
+        require(reported.matches("[0-9]+\\|[0-9]+"), "Cannot determine effective Docker CPU and memory for the pilot.");
+        String[] resources = reported.split("\\|");
+        long vcpu = Long.parseLong(resources[0]);
+        long memory = Long.parseLong(resources[1]);
+        require(vcpu >= 4 && memory >= 8_000_000_000L,
+            "Pilot requires Docker with at least 4 vCPU and 8000000000 bytes of memory. Actual: "
+                + vcpu + " vCPU, " + memory + " bytes.");
+    }
 
     private static void assertIsolated() throws Exception {
         for (String service : List.of("app", "db")) {

@@ -36,7 +36,7 @@
 <p>Всего счетов в отчёте <strong id="total-rows" th:text="${report.totalRows}"></strong>.
     <span th:if="${totalPages > report.query.page}" th:text="|Детальные строки страницы ${report.query.page + 1} из ${totalPages}.|"></span>
     Общие итоги рассчитаны по всем подходящим счетам.</p>
-<div class="table-wrap"><table class="statement-table">
+<div class="table-wrap" tabindex="0" role="region" aria-label="Таблица отчёта"><table class="statement-table">
     <thead><tr><th scope="col">Лицевой счёт</th><th scope="col">Клиент</th><th scope="col">Текущий статус</th>
         <th scope="col" class="money" th:each="column : ${columns}" th:text="${column.label}"></th>
     </tr></thead>

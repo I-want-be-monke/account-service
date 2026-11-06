@@ -8,6 +8,12 @@
 .statement-document .statement-totals { grid-template-columns: minmax(16rem, 30rem) 1fr; padding-top: 1rem; border-top: 2px solid #172234; }
 .statement-document h2 { font-size: 1.2rem; }
 .statement-document.print-preview { border-color: #8391a4; }
+@media screen {
+    .statement-document .table-wrap:focus-visible { outline: 2px solid #174f84; outline-offset: 2px; }
+    .statement-document:not(.report-document) .statement-table td:first-child { min-width: 6.5rem; }
+    .report-document .statement-table tbody th { white-space: nowrap; }
+    .report-document .statement-table td.statement-text { min-width: 10rem; }
+}
 @media print {
     @page { size: A4 landscape; margin: 12mm; }
     body { margin: 0; background: #fff; color: #000; font-size: 9pt; }

@@ -1,0 +1,11 @@
+services:
+  app:
+    volumes:
+      - type: bind
+        source: ${E11_UI_CA_FILE:?Prepare the E11 test certificate first}
+        target: /run/account-service/e11-ui-ca.pem
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD-SHELL", "curl --noproxy '*' --cacert /run/account-service/e11-ui-ca.pem -fsS --max-time 3 https://localhost:18448/actuator/health/readiness"]

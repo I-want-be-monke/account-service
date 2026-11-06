@@ -1,0 +1,10 @@
+{
+  "name": "account-service-ui-checks",
+  "version": "1.0.0",
+  "private": true,
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "csv-parse": "6.1.0",
+    "selenium-webdriver": "4.43.0"
+  }
+}

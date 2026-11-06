@@ -82,6 +82,16 @@ function Assert-E11Checks($Check) {
 }
 
 try {
+    if ($Command -eq 'Seed' -and $Profile -eq 'pilot') {
+        $reported = Invoke-Docker -Arguments @('info','--format','{{.NCPU}}|{{.MemTotal}}') -TimeoutSeconds 20
+        $resources = [regex]::Match($reported, '^([0-9]+)\|([0-9]+)$')
+        if (-not $resources.Success) { throw 'Cannot determine effective Docker CPU and memory for the pilot.' }
+        $vcpu = [long]$resources.Groups[1].Value
+        $memory = [long]$resources.Groups[2].Value
+        if ($vcpu -lt 4 -or $memory -lt 8000000000L) {
+            throw "Pilot requires Docker with at least 4 vCPU and 8000000000 bytes of memory. Actual: $vcpu vCPU, $memory bytes."
+        }
+    }
     $local = [IO.Path]::GetFullPath((Join-Path $e11Root '.local'))
     $evidence = [IO.Path]::GetFullPath($EvidenceDirectory)
     if (-not $evidence.StartsWith(($local.TrimEnd('\') + '\'),[StringComparison]::OrdinalIgnoreCase)) {
