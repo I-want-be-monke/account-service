@@ -1,5 +1,7 @@
 # Резервное копирование и проверка восстановления
 
+Для защиты копируйте небольшую базу `account_service_defense`. В отдельном окне CMD задайте `ACCOUNT_OPS_COMPOSE_PROJECT=account-service-defense`, `ACCOUNT_OPS_ENV_FILE=.local\defense.env` и `ACCOUNT_BACKUP_ROOT=%CD%\.local\defense-backups`, затем выполните `scripts\backup.cmd`. Восстановление выбранного архива выполняется существующей командой `scripts\restore-test.cmd` на отдельном HTTPS-порту 18443. [Полные команды и сверка](demo.md)
+
 ## Ручная копия
 
 В CMD из каталога проекта выполните `scripts\backup.cmd`. Docker Desktop и служба `db` проекта `account-service` должны работать. Скрипт запускает `pg_dump` 17 в контейнере PostgreSQL и пишет архив custom format в `.local\backups` на диске Windows. Он проверяет код возврата, каталог объектов, полное чтение архива через `pg_restore` и SHA‑256. Только после этого каталог копии получает окончательное имя `backup-<UTC>-<id>`.
