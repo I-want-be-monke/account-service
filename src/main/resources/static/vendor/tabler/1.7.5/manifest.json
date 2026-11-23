@@ -1,0 +1,20 @@
+{
+  "name": "@tabler/core",
+  "version": "1.7.5",
+  "license": "MIT",
+  "source": "https://github.com/tabler/tabler",
+  "licenseSource": "https://github.com/tabler/tabler/blob/dev/LICENSE",
+  "tarball": "https://registry.npmjs.org/@tabler/core/-/core-1.7.5.tgz",
+  "integrity": "sha512-lqR2kfrxvH6q0fESm4ABJk3lhUJGQ/tBtiNi4oSCvDgMNljStTLpY38F+e5EtaUqufpbZq8MIxN94QK8cTApAA==",
+  "files": {
+    "LICENSE": "4f88a82d13be3c5c63a12c5631eae914aa4381b6dc17641bf1ab85f3f8f6c8a5",
+    "LICENSE.bootstrap": "4620c84ad5ce8602ff65640ed6b7c8b78ebb9e036584f0ebc1ccc88206a4bb51",
+    "LICENSE.popper": "bf67e2c9b7974543bb18ced3a0b37f53729aaff953b442dd89a3adaf90fd93e8",
+    "tabler.min.css": "d1708c69e6b07a5a3138b8549bf64e00cd9d18c130b9b2ba2d9e294956f7c564",
+    "tabler.min.js": "f63744ad8e12180089844d0e550c5b3abd66eda0e52dead2eb31eef017148e93"
+  },
+  "bundledLicenses": {
+    "Bootstrap 5.3.8": "https://github.com/twbs/bootstrap/blob/v5.3.8/LICENSE",
+    "Popper 2.11.8": "https://github.com/floating-ui/floating-ui/blob/v2.11.8/LICENSE.md"
+  }
+}

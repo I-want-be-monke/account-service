@@ -20,6 +20,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.SpyBean;
@@ -56,14 +57,18 @@ class ExportIT extends StatementIntegrationSupport {
         assertThat(dto.path("formatVersion").asText()).isEqualTo("1");
         assertThat(dto.path("from").asText()).isEqualTo(today().toString());
         assertThat(dto.path("generatedAt").asText()).matches(".*T.*Z");
-        for(String[] expected:new String[][]{{"openingBalance","1000.00"},{"increase","50.00"},
-            {"decrease","500.00"},{"closingBalance","550.00"}}) {
+        for(String[] expected:new String[][]{{"openingBalance","1000.00","opening-balance"},{"increase","50.00","increase"},
+            {"decrease","500.00","decrease"},{"closingBalance","550.00","closing-balance"}}) {
             assertThat(dto.path(expected[0]).isTextual()).isTrue();
             assertThat(dto.path(expected[0]).asText()).isEqualTo(expected[1]);
-            assertThat(html(html)).contains(expected[1]);
-            assertThat(html(print)).contains(expected[1]);
+            String display=String.format(Locale.US,"%,.2f",new BigDecimal(expected[1]))
+                .replace(',',' ').replace('.',',')+" ₽";
+            String amount="id=\""+expected[2]+"\"[^>]*data-value=\""+Pattern.quote(expected[1])
+                +"\"[^>]*>\\s*"+Pattern.quote(display)+"\\s*</div>";
+            assertThat(html(html)).containsPattern(amount);
+            assertThat(html(print)).containsPattern(amount);
         }
-        assertThat(html(print)).contains("/css/print.css").contains("/js/statement.js");
+        assertThat(html(print)).contains("/css/print.css").contains("/js/app.js");
         assertThat(dto.toString()).doesNotContain("password","SecurityContext","authVersion","idempotencyKey","requestFingerprint");
         List<Map<String,String>> records=csv(csv.getResponse().getContentAsByteArray());
         assertThat(records).extracting(r->r.get("record_type"))

@@ -1,17 +1,40 @@
-<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Лицевой счёт</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
-<nav><a th:href="${isClient} ? @{/my/accounts} : @{/accounts}">К списку счетов</a> <a th:href="@{/}">Главная</a></nav>
-<h1>Лицевой счёт <span th:text="${account.accountNumber}"></span></h1>
-<p class="notice" th:if="${param.created}">Счёт открыт.</p><p class="notice" th:if="${param.updated}">Состояние счёта изменено.</p>
-<dl><dt>Клиент</dt><dd th:text="${account.clientName}"></dd><dt>Статус</dt><dd th:text="${account.status == 'OPEN' ? 'Открыт' : (account.status == 'SUSPENDED' ? 'Приостановлен' : 'Закрыт')}"></dd>
-<dt>Дата открытия</dt><dd th:text="${account.openedOn}"></dd><dt>Дата закрытия</dt><dd th:text="${account.closedOn == null ? 'Не закрыт' : account.closedOn}"></dd>
-<dt>Начало истории</dt><dd th:text="${account.historyStartOn}"></dd><dt>Валюта</dt><dd th:text="${account.currency}"></dd>
-<dt>Входящее сальдо, ₽</dt><dd th:text="${account.openingBalance}"></dd><dt>Текущее сальдо, ₽</dt><dd th:text="${account.currentBalance}"></dd></dl>
-<p th:if="${isOperator and account.status != 'CLOSED'}"><a th:href="@{/accounts/{id}/status(id=${account.id})}">Изменить статус</a></p>
-<p th:if="${canReadOperations}"><a th:href="@{/accounts/{id}/operations(id=${account.id})}">Операции по счету</a></p>
-<p><a th:href="@{/accounts/{id}/statement(id=${account.id})}">Сформировать выписку</a></p>
-<p th:if="${isAccountant and account.status == 'OPEN'}"><a th:href="@{/accounts/{id}/operations/new(id=${account.id},kind='CHARGE')}">Начислить</a> · <a th:href="@{/accounts/{id}/operations/new(id=${account.id},kind='PAYMENT')}">Зарегистрировать платеж</a></p>
-<h2>История состояний</h2><div class="table-wrap"><table><thead><tr><th>Время</th><th>Было</th><th>Стало</th><th>Причина</th></tr></thead><tbody>
-<tr th:each="item : ${history.content}"><td th:text="${item.changedAt}"></td><td th:text="${item.oldStatus == null ? 'Новый счёт' : item.oldStatus}"></td><td th:text="${item.newStatus}"></td><td th:text="${item.reason}"></td></tr>
-<tr th:if="${history.empty}"><td colspan="4">Записи отсутствуют.</td></tr></tbody></table></div>
-<div class="pager"><a th:if="${history.hasPrevious()}" th:href="@{/accounts/{id}(id=${account.id},page=${history.number - 1})}">Назад</a><span th:text="|Страница ${history.number + 1} из ${history.totalPages == 0 ? 1 : history.totalPages}|"></span><a th:if="${history.hasNext()}" th:href="@{/accounts/{id}(id=${account.id},page=${history.number + 1})}">Далее</a></div>
-</main></body></html>
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Лицевой счёт', false)}"></head>
+<body><div th:replace="~{fragments/layout :: shell('Лицевой счёт', 'accounts', ~{::main})}">
+<main id="main-content" class="page-content">
+    <div class="page-heading">
+        <div><p class="eyebrow">Счёт клиента</p><h1>Лицевой счёт <span th:text="${account.accountNumber}"></span></h1><p class="text-secondary" th:text="${account.clientName}"></p></div>
+        <span th:replace="~{fragments/ui :: status(${account.status})}"></span>
+    </div>
+    <div class="alert alert-success" role="status" th:if="${param.created}">Счёт открыт.</div>
+    <div class="alert alert-success" role="status" th:if="${param.updated}">Состояние счёта изменено.</div>
+    <section class="metric-grid" aria-label="Сальдо счёта">
+        <div class="card metric-card"><div class="card-body"><p class="text-secondary">Текущее сальдо</p><strong class="metric-value money" th:text="${@ui.money(account.currentBalance)}"></strong><p class="text-secondary" th:text="${account.currentBalance.signum() > 0 ? 'Задолженность по счёту' : account.currentBalance.signum() < 0 ? 'Аванс на счёте' : 'Задолженности и аванса нет'}"></p></div></div>
+        <div class="card metric-card"><div class="card-body"><p class="text-secondary">Входящее сальдо</p><strong class="metric-value money" th:text="${@ui.money(account.openingBalance)}"></strong><p class="text-secondary">На начало доступной истории</p></div></div>
+    </section>
+    <div class="action-bar">
+        <a class="btn btn-primary" th:href="@{/accounts/{id}/statement(id=${account.id})}">Сформировать выписку</a>
+        <a class="btn btn-outline-secondary" th:if="${canReadOperations}" th:href="@{/accounts/{id}/operations(id=${account.id})}">Операции по счету</a>
+        <th:block th:if="${isAccountant and account.status == 'OPEN'}"><a class="btn btn-outline-secondary" th:href="@{/accounts/{id}/operations/new(id=${account.id},kind='CHARGE')}">Начислить</a><a class="btn btn-outline-secondary" th:href="@{/accounts/{id}/operations/new(id=${account.id},kind='PAYMENT')}">Зарегистрировать платеж</a></th:block>
+        <a class="btn btn-outline-secondary" th:if="${isOperator and account.status != 'CLOSED'}" th:href="@{/accounts/{id}/status(id=${account.id})}">Изменить статус</a>
+    </div>
+    <section class="card"><div class="card-header"><h2 class="card-title">Реквизиты счёта</h2></div><div class="card-body">
+        <dl class="details-list">
+            <div><dt>Клиент</dt><dd th:text="${account.clientName}"></dd></div>
+            <div><dt>Дата открытия</dt><dd th:text="${@ui.date(account.openedOn)}"></dd></div>
+            <div><dt>Дата закрытия</dt><dd th:text="${account.closedOn == null ? 'Не закрыт' : @ui.date(account.closedOn)}"></dd></div>
+            <div><dt>Начало истории</dt><dd th:text="${@ui.date(account.historyStartOn)}"></dd></div>
+            <div><dt>Валюта</dt><dd th:text="${account.currency == 'RUB' ? 'Российский рубль' : account.currency}"></dd></div>
+        </dl>
+    </div></section>
+    <section class="card card-table"><div class="card-header"><h2 class="card-title">История состояний</h2></div>
+        <div class="table-responsive" tabindex="0" role="region" aria-label="История состояний"><table class="table table-vcenter"><thead><tr><th scope="col">Дата и время</th><th scope="col">Было</th><th scope="col">Стало</th><th scope="col">Причина</th></tr></thead><tbody>
+        <tr th:each="item : ${history.content}"><td th:text="${@ui.date(item.changedAt)}"></td><td th:text="${item.oldStatus == null ? 'Новый счёт' : @ui.status(item.oldStatus)}"></td><td><span th:replace="~{fragments/ui :: status(${item.newStatus})}"></span></td><td th:text="${item.reason}"></td></tr>
+        <tr th:if="${history.empty}"><td colspan="4"><div class="empty-state"><h3>Изменений пока нет</h3><p>Здесь появятся записи об изменении состояния счёта.</p></div></td></tr>
+        </tbody></table></div>
+        <nav class="card-footer pagination-bar" aria-label="Страницы истории состояний"><a class="btn btn-outline-secondary btn-sm" th:if="${history.hasPrevious()}" th:href="@{/accounts/{id}(id=${account.id},page=${history.number - 1})}">Назад</a><span class="text-secondary" th:text="|Страница ${history.number + 1} из ${history.totalPages == 0 ? 1 : history.totalPages}|"></span><a class="btn btn-outline-secondary btn-sm" th:if="${history.hasNext()}" th:href="@{/accounts/{id}(id=${account.id},page=${history.number + 1})}">Далее</a></nav>
+    </section>
+    <details class="card technical-details"><summary>Служебные сведения</summary><div class="card-body"><dl class="details-list"><div><dt>Идентификатор счёта</dt><dd><code th:text="${account.id}"></code></dd></div><div><dt>Версия записи</dt><dd th:text="${account.version}"></dd></div></dl></div></details>
+    <a class="back-link" th:href="${isClient} ? @{/my/accounts} : @{/accounts}">К списку счетов</a>
+</main></div></body></html>

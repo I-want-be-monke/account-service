@@ -1,13 +1,21 @@
-<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Подтверждение проведения</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
-<nav><a th:href="@{/operations/{id}(id=${operation.id})}">← Назад</a></nav><h1>Проверка перед проведением</h1><p>Счет: <strong th:text="${account.accountNumber}"></strong></p>
-<dl><dt>Вид</dt><dd th:text="${operation.kind == 'CHARGE' ? 'Начисление' : operation.kind == 'PAYMENT' ? 'Платеж' : 'Исправление'}"></dd>
-<dt>Сумма движения, ₽</dt><dd th:text="${operation.amount}"></dd><dt>Изменение сальдо, ₽</dt><dd th:text="${operation.delta}"></dd>
-<dt>Дата</dt><dd th:text="${operation.date}"></dd><dt>Основание</dt><dd th:text="${operation.basis}"></dd>
-<dt th:if="${operation.correctsOperationId != null}">Исходная операция</dt><dd th:if="${operation.correctsOperationId != null}"><a th:href="@{/operations/{id}(id=${operation.correctsOperationId})}" th:text="${operation.correctsOperationId}"></a></dd>
-<dt th:if="${operation.targetAmount != null}">Целевая сумма, ₽</dt><dd th:if="${operation.targetAmount != null}" th:text="${operation.targetAmount}"></dd>
-<dt th:if="${operation.correctionReason != null}">Причина исправления</dt><dd th:if="${operation.correctionReason != null}" th:text="${operation.correctionReason}"></dd>
-<dt>Номер документа</dt><dd th:text="${operation.documentNumber == null ? 'Не указан' : operation.documentNumber}"></dd>
-<dt>Текущее сальдо, ₽</dt><dd th:text="${account.currentBalance}"></dd></dl>
-<p class="hint">Проверьте исходную операцию, сумму и причину. Проведение фиксирует отдельную неизменяемую строку и обновляет сальдо счета.</p>
-<form method="post" th:action="@{/operations/{id}/confirm(id=${operation.id})}"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input type="hidden" name="token" th:value="${pending.token}"><button type="submit">Подтвердить проведение</button></form>
-</main></body></html>
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Подтверждение проведения', false)}"></head>
+<body><div th:replace="~{fragments/layout :: shell('Подтверждение проведения', 'operations', ~{::main})}"><main id="main-content" class="page-content">
+
+    <div class="page-heading"><div><h1>Проверка перед проведением</h1><p class="text-secondary">Подтвердите документ после проверки суммы и основания.</p></div></div>
+    <ol class="flow-steps" aria-label="Этапы операции"><li class="is-complete"><span>1</span> Подготовка</li><li class="is-current" aria-current="step"><span>2</span> Проверка</li><li><span>3</span> Проведение</li></ol>
+    <section class="metric-grid confirmation-summary" aria-label="Финансовый результат"><div class="card metric-card"><div class="card-body"><p class="text-secondary">Сальдо сейчас</p><strong class="metric-value money" th:text="${@ui.money(account.currentBalance)}"></strong></div></div><div class="card metric-card"><div class="card-body"><p class="text-secondary">Изменение сальдо</p><strong class="metric-value money" th:text="${@ui.money(operation.delta)}"></strong></div></div><div class="card metric-card"><div class="card-body"><p class="text-secondary">После проведения</p><strong class="metric-value money" th:text="${@ui.money(account.currentBalance.add(operation.delta))}"></strong></div></div></section>
+    <section class="card form-card"><div class="card-header"><h2 class="card-title" th:text="${@ui.status(operation.kind)}"></h2><span class="status-pill" data-status="PREPARED">Черновик</span></div><div class="card-body">
+        <dl class="details-list"><div><dt>Счёт</dt><dd th:text="${account.accountNumber}"></dd></div><div><dt>Клиент</dt><dd th:text="${account.clientName}"></dd></div><div><dt>Дата учета</dt><dd th:text="${@ui.date(operation.date)}"></dd></div><div><dt>Сумма движения</dt><dd class="money" th:text="${@ui.money(operation.amount)}"></dd></div><div><dt>Номер документа</dt><dd th:text="${operation.documentNumber == null ? 'Не указан' : operation.documentNumber}"></dd></div><div><dt>Основание</dt><dd th:text="${operation.basis}"></dd></div>
+            <div th:if="${operation.periodStart != null}"><dt>Расчетный период</dt><dd th:text="${@ui.date(operation.periodStart)}"></dd></div>
+            <div th:if="${operation.paymentMethod != null}"><dt>Способ платежа</dt><dd th:text="${@ui.status(operation.paymentMethod)}"></dd></div>
+            <div th:if="${sourceOperation != null}"><dt>Исходная операция</dt><dd><a th:href="@{/operations/{id}(id=${operation.correctsOperationId})}" th:text="${sourceOperation.documentNumber == null ? @ui.status(sourceOperation.kind) : sourceOperation.documentNumber}"></a></dd></div>
+            <div th:if="${sourceOperation != null}"><dt>Исходная сумма</dt><dd class="money" th:text="${@ui.money(sourceOperation.amount)}"></dd></div>
+            <div th:if="${operation.targetAmount != null}"><dt>Целевая сумма</dt><dd class="money" th:text="${@ui.money(operation.targetAmount)}"></dd></div>
+            <div th:if="${operation.correctionReason != null}"><dt>Причина исправления</dt><dd th:text="${operation.correctionReason}"></dd></div>
+        </dl>
+        <div class="alert alert-warning" role="note">Подтверждение зафиксирует движение и обновит сальдо. Расчёт выше использует текущее сальдо, сервер повторно проверит документ при проведении.</div>
+        <form method="post" th:action="@{/operations/{id}/confirm(id=${operation.id})}"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input type="hidden" name="token" th:value="${pending.token}"><div class="action-bar form-actions"><button class="btn btn-primary" type="submit">Подтвердить проведение</button><a class="btn btn-outline-secondary" th:href="@{/operations/{id}(id=${operation.id})}">Назад к документу</a></div></form>
+    </div></section>
+</main></div></body></html>

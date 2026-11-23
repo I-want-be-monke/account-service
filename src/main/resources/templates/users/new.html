@@ -1,19 +1,22 @@
-<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>Новый пользователь</title>
-<link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="card">
-<nav><a th:href="@{/admin/users}">Пользователи</a></nav><h1>Новый пользователь</h1>
-<p class="alert" th:if="${formError}" th:text="${formError}"></p>
-<form method="post" th:action="@{/admin/users/new}" th:object="${form}">
-<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-<label for="login">Логин *</label><input id="login" th:field="*{login}" maxlength="100" required>
-<small class="alert" th:if="${#fields.hasErrors('login')}" th:errors="*{login}"></small>
-<label for="fullName">Имя *</label><input id="fullName" th:field="*{fullName}" maxlength="200" required>
-<small class="alert" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}"></small>
-<label for="password">Начальный пароль * (12–128 символов)</label><input id="password" type="password" name="password" minlength="12" maxlength="128" autocomplete="new-password" required>
-<small class="alert" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></small>
-<label for="roleCode">Роль *</label><select id="roleCode" th:field="*{roleCode}" required><option value="">Выберите роль</option>
-<option th:each="r : ${roles}" th:value="${r.code}" th:text="${r.displayName}"></option></select>
-<label for="clientId">ID клиента (только для роли «Клиент»)</label><input id="clientId" th:field="*{clientId}" placeholder="UUID существующего клиента">
-<p class="hint">Для клиентской роли укажите ID существующей карточки клиента.</p>
-<button type="submit">Создать</button> <a th:href="@{/admin/users}">Отмена</a></form>
-</main></body></html>
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Новый пользователь', false)}"></head>
+<body><div th:replace="~{fragments/layout :: shell('Новый пользователь', 'users', ~{::main})}"><main id="main-content" class="page-content">
+
+    <div class="page-heading"><div><h1>Новый пользователь</h1><p class="text-secondary">Создайте учётную запись и назначьте разрешённую роль.</p></div><a class="btn btn-outline-secondary" th:href="@{/admin/users}">Пользователи</a></div>
+    <div class="alert alert-danger" role="alert" th:if="${formError}" th:text="${formError}"></div>
+    <details class="card" th:open="${clientSearchRequested}"><summary>Выбрать клиента через отдельный поиск</summary><div class="card-body"><p class="form-hint">Используйте перед заполнением учётных данных, если подсказки поиска недоступны.</p><form class="filter-grid" method="get" th:action="@{/admin/users/new}"><div class="form-field"><label class="form-label" for="client-search">Имя или наименование клиента</label><input class="form-control" id="client-search" name="clientQuery" th:value="${clientQuery}" maxlength="200"></div><button class="btn btn-outline-secondary" type="submit" name="searchClients" value="1">Найти клиента</button></form><ul class="selection-list"><li th:each="c : ${clientOptions}"><a th:href="@{/admin/users/new(clientId=${c.id})}"><strong th:text="${c.displayName}"></strong><span class="text-secondary" th:text="|${c.identifierType} · ${c.identifierValue}|"></span></a></li></ul><p th:if="${clientSearchRequested and #lists.isEmpty(clientOptions)}">Активные клиенты не найдены. Уточните начало имени.</p></div></details>
+    <section class="card form-card"><div class="card-body"><form method="post" th:action="@{/admin/users/new}" th:object="${form}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <fieldset><legend>Учётные данные</legend><div class="form-grid">
+            <div class="form-field"><label class="form-label" for="login">Логин</label><input class="form-control" id="login" th:field="*{login}" th:errorclass="is-invalid" minlength="3" maxlength="100" required autocomplete="off" aria-describedby="login-hint"><p id="login-hint" class="form-hint">Латинские буквы, цифры, точка, дефис и подчёркивание.</p><p class="invalid-feedback" th:if="${#fields.hasErrors('login')}" th:errors="*{login}"></p></div>
+            <div class="form-field"><label class="form-label" for="fullName">Имя</label><input class="form-control" id="fullName" th:field="*{fullName}" th:errorclass="is-invalid" maxlength="200" required autocomplete="name"><p class="invalid-feedback" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}"></p></div>
+            <div class="form-field"><label class="form-label" for="password">Начальный пароль</label><input class="form-control" id="password" type="password" name="password" minlength="12" maxlength="128" autocomplete="new-password" required aria-describedby="password-hint"><p id="password-hint" class="form-hint">От 12 до 128 символов.</p><p class="invalid-feedback" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></p></div>
+        </div></fieldset>
+        <fieldset><legend>Роль и привязка</legend><div class="form-grid">
+            <div class="form-field"><label class="form-label" for="roleCode">Роль</label><select class="form-select" id="roleCode" th:field="*{roleCode}" th:errorclass="is-invalid" required><option value="">Выберите роль</option><option th:each="r : ${roles}" th:value="${r.code}" th:text="${r.displayName}"></option></select></div>
+            <div class="form-field" th:with="activeOnly=true"><div th:replace="~{fragments/client-picker :: picker('user-client', ${form.clientId}, ${selectedClientName}, ${null})}"></div><p class="form-hint">Для роли «Клиент» выберите владельца счетов. Для сотрудника оставьте поле пустым.</p><p class="invalid-feedback d-block" th:if="${#fields.hasErrors('clientId')}" th:errors="*{clientId}"></p></div>
+        </div></fieldset>
+        <div class="action-bar form-actions"><button class="btn btn-primary" type="submit">Создать</button><a class="btn btn-outline-secondary" th:href="@{/admin/users}">Отмена</a></div>
+    </form></div></section>
+</main></div></body></html>

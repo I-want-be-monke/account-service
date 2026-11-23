@@ -1,0 +1,32 @@
+{
+  "8443": {
+    "readiness": "UP",
+    "assets_match_source": {
+      "css/app.css": true,
+      "css/print.css": true,
+      "js/app.js": true,
+      "vendor/tabler/1.7.5/tabler.min.css": true,
+      "vendor/tabler/1.7.5/tabler.min.js": true
+    }
+  },
+  "18450": {
+    "readiness": "UP",
+    "assets_match_source": {
+      "css/app.css": true,
+      "css/print.css": true,
+      "js/app.js": true,
+      "vendor/tabler/1.7.5/tabler.min.css": true,
+      "vendor/tabler/1.7.5/tabler.min.js": true
+    }
+  },
+  "18448": {
+    "readiness": "UP",
+    "assets_match_source": {
+      "css/app.css": true,
+      "css/print.css": true,
+      "js/app.js": true,
+      "vendor/tabler/1.7.5/tabler.min.css": true,
+      "vendor/tabler/1.7.5/tabler.min.js": true
+    }
+  }
+}

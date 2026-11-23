@@ -1,16 +1,22 @@
-<!doctype html>
-<html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1"><title>Вход — Лицевые счета</title>
-  <link rel="stylesheet" th:href="@{/css/app.css}"></head>
-<body><main class="card"><h1>Сервис лицевых счетов</h1>
-  <p>Войдите под своей учетной записью.</p>
-  <p class="alert" th:if="${param.error}">Неверный логин или пароль.</p>
-  <p class="notice" th:if="${param.logout}">Вы вышли из системы.</p>
-  <p class="alert" th:if="${param.expired}">Сеанс завершен. Войдите повторно.</p>
-  <form method="post" th:action="@{/login}">
-    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-    <label for="username">Логин</label><input id="username" name="username" autocomplete="username" required autofocus>
-    <label for="password">Пароль</label><input id="password" type="password" name="password" autocomplete="current-password" required>
-    <button type="submit">Войти</button>
-  </form>
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Вход', false)}"></head><body>
+<main class="login-page" id="main-content">
+  <section class="login-story" aria-label="Сервис лицевых счетов">
+    <div class="app-brand"><span class="brand-mark"><svg th:replace="~{fragments/layout :: icon('brand')}"></svg></span><span class="brand-copy"><strong>Лицевые счета</strong><small>Клиенты и финансы</small></span></div>
+    <h2>Все расчёты.<br>Одна система.</h2><p>Клиенты, лицевые счета и финансовая история — в едином рабочем пространстве.</p>
+    <ul class="login-points"><li><svg th:replace="~{fragments/layout :: icon('accounts')}"></svg>Учёт лицевых счетов</li><li><svg th:replace="~{fragments/layout :: icon('reports')}"></svg>Отчёты и выписки</li><li><svg th:replace="~{fragments/layout :: icon('shield')}"></svg>Персональный доступ по роли</li></ul>
+    <small class="login-note">Сервис лицевых счетов клиентов</small>
+  </section>
+  <section class="login-panel" aria-labelledby="login-title"><div class="login-form">
+    <span class="brand-mark"><svg th:replace="~{fragments/layout :: icon('brand')}"></svg></span>
+    <h1 id="login-title">Вход в систему</h1><p>Сервис управления лицевыми счетами</p>
+    <p class="alert alert-danger" role="alert" th:if="${param.error}">Неверный логин или пароль. Проверьте данные и повторите вход.</p>
+    <p class="alert alert-success" role="status" th:if="${param.logout}">Вы вышли из системы.</p>
+    <p class="alert alert-warning" role="alert" th:if="${param.expired}">Сеанс завершён. Войдите повторно.</p>
+    <form method="post" th:action="@{/login}"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <label for="username">Логин</label><input id="username" name="username" autocomplete="username" required autofocus spellcheck="false" autocapitalize="none">
+      <label for="password">Пароль</label><input id="password" type="password" name="password" autocomplete="current-password" required>
+      <button type="submit" class="btn btn-primary">Войти в систему<svg th:replace="~{fragments/layout :: icon('arrow')}"></svg></button>
+    </form><p class="form-hint mt-4">Если у вас нет учётной записи, обратитесь к администратору.</p>
+  </div></section>
 </main></body></html>

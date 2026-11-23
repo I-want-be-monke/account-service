@@ -28,7 +28,22 @@ public class AuditController {
         Map.entry("USER_ACCESS_DENIED", "Отказ в смене доступа"), Map.entry("SUCCESS", "Успех"),
         Map.entry("DENIED", "Отказ"), Map.entry("SECURITY", "Безопасность"),
         Map.entry("ACCESS", "Доступ"), Map.entry("BUSINESS", "Действие"),
-        Map.entry("OPERATIONS", "Эксплуатация"));
+        Map.entry("OPERATIONS", "Эксплуатация"), Map.entry("FAILED", "Ошибка"),
+        Map.entry("ACCOUNT", "Лицевой счёт"), Map.entry("CLIENT", "Клиент"),
+        Map.entry("OPERATION", "Финансовая операция"), Map.entry("REPORT", "Отчёт"),
+        Map.entry("USER", "Пользователь"), Map.entry("IMPORT_RUN", "Импорт"),
+        Map.entry("CLIENT_CREATED", "Создание клиента"), Map.entry("CLIENT_UPDATED", "Изменение клиента"),
+        Map.entry("CLIENT_STATUS_CHANGED", "Смена статуса клиента"),
+        Map.entry("ACCOUNT_OPENED", "Открытие счёта"), Map.entry("ACCOUNT_STATUS_CHANGED", "Смена статуса счёта"),
+        Map.entry("OPERATION_PREPARED", "Подготовка операции"), Map.entry("OPERATION_UPDATED", "Изменение черновика"),
+        Map.entry("OPERATION_POSTED", "Проведение операции"), Map.entry("OPERATION_DISCARDED", "Отбрасывание черновика"),
+        Map.entry("OPERATION_CORRECTION_PREPARED", "Подготовка корректировки"),
+        Map.entry("OPERATION_CORRECTION_POSTED", "Проведение корректировки"),
+        Map.entry("OPERATION_PREPARE_DENIED", "Отказ в подготовке операции"),
+        Map.entry("OPERATION_POST_DENIED", "Отказ в проведении операции"),
+        Map.entry("USER_COMMAND_DENIED", "Отказ в выполнении действия"),
+        Map.entry("REPORT_GENERATED", "Формирование отчёта"), Map.entry("STATEMENT_GENERATED", "Формирование выписки"),
+        Map.entry("IMPORT_COMPLETED", "Завершение импорта"));
     private final AuditQueryService audits;
     public AuditController(AuditQueryService audits) { this.audits = audits; }
 

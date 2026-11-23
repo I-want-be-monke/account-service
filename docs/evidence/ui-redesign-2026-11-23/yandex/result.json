@@ -1,0 +1,744 @@
+{
+  "browser": "yandex",
+  "started": "2026-11-23T19:29:16.369Z",
+  "mode": "headless Selenium WebDriver",
+  "steps": [
+    {
+      "name": "start",
+      "status": "PASS"
+    },
+    {
+      "name": "admin",
+      "status": "PASS"
+    },
+    {
+      "name": "operator-create",
+      "status": "PASS"
+    },
+    {
+      "name": "accountant",
+      "status": "PASS"
+    },
+    {
+      "name": "finance-form-error",
+      "status": "PASS"
+    },
+    {
+      "name": "finance-post",
+      "status": "PASS"
+    },
+    {
+      "name": "corrections",
+      "status": "PASS"
+    },
+    {
+      "name": "history",
+      "status": "PASS"
+    },
+    {
+      "name": "statement",
+      "status": "PASS"
+    },
+    {
+      "name": "statement-error",
+      "status": "PASS"
+    },
+    {
+      "name": "statement-csv",
+      "status": "PASS"
+    },
+    {
+      "name": "statement-print",
+      "status": "PASS"
+    },
+    {
+      "name": "statement-layout",
+      "status": "PASS"
+    },
+    {
+      "name": "manager-report",
+      "status": "PASS"
+    },
+    {
+      "name": "report-empty",
+      "status": "PASS"
+    },
+    {
+      "name": "report-csv",
+      "status": "PASS"
+    },
+    {
+      "name": "report-print",
+      "status": "PASS"
+    },
+    {
+      "name": "report-layout",
+      "status": "PASS"
+    },
+    {
+      "name": "manager-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "client",
+      "status": "PASS"
+    }
+  ],
+  "layout": [
+    {
+      "name": "financial-form",
+      "viewport": "1920x1080",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 1905,
+      "primaryWidth": null,
+      "width": 1920,
+      "wrappers": []
+    },
+    {
+      "name": "financial-form",
+      "viewport": "1440x900",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 1425,
+      "primaryWidth": null,
+      "width": 1440,
+      "wrappers": []
+    },
+    {
+      "name": "financial-form",
+      "viewport": "1366x768",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 1351,
+      "primaryWidth": null,
+      "width": 1366,
+      "wrappers": []
+    },
+    {
+      "name": "financial-form",
+      "viewport": "768x1024",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 753,
+      "primaryWidth": null,
+      "width": 768,
+      "wrappers": []
+    },
+    {
+      "name": "financial-form",
+      "viewport": "390x844",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 375,
+      "primaryWidth": null,
+      "width": 390,
+      "wrappers": []
+    },
+    {
+      "name": "financial-form",
+      "viewport": "200-percent",
+      "browserZoom": {
+        "original": {
+          "dpr": 1,
+          "width": 1440
+        },
+        "enlarged": {
+          "dpr": 2,
+          "width": 720
+        }
+      },
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 712,
+      "primaryWidth": null,
+      "width": 720,
+      "wrappers": []
+    },
+    {
+      "name": "statement",
+      "viewport": "1920x1080",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 1905,
+      "primaryWidth": 175.375,
+      "width": 1920,
+      "wrappers": [
+        {
+          "content": 1511,
+          "overflow": "auto",
+          "width": 1511
+        }
+      ]
+    },
+    {
+      "name": "statement",
+      "viewport": "1440x900",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 1425,
+      "primaryWidth": 137.015625,
+      "width": 1440,
+      "wrappers": [
+        {
+          "content": 1088,
+          "overflow": "auto",
+          "width": 1088
+        }
+      ]
+    },
+    {
+      "name": "statement",
+      "viewport": "1366x768",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 1351,
+      "primaryWidth": 135.75,
+      "width": 1366,
+      "wrappers": [
+        {
+          "content": 1014,
+          "overflow": "auto",
+          "width": 1014
+        }
+      ]
+    },
+    {
+      "name": "statement",
+      "viewport": "768x1024",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 753,
+      "primaryWidth": 130.5625,
+      "width": 768,
+      "wrappers": [
+        {
+          "content": 709,
+          "overflow": "auto",
+          "width": 688
+        }
+      ]
+    },
+    {
+      "name": "statement",
+      "viewport": "390x844",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 375,
+      "primaryWidth": 130.5625,
+      "width": 390,
+      "wrappers": [
+        {
+          "content": 709,
+          "overflow": "auto",
+          "width": 326
+        }
+      ],
+      "keyboard": {
+        "active": true,
+        "outline": "solid",
+        "visible": true,
+        "scrollLeft": 28
+      }
+    },
+    {
+      "name": "statement",
+      "viewport": "200-percent",
+      "browserZoom": {
+        "original": {
+          "dpr": 1,
+          "width": 1440
+        },
+        "enlarged": {
+          "dpr": 2,
+          "width": 720
+        }
+      },
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 712,
+      "primaryWidth": 130.5625,
+      "width": 720,
+      "wrappers": [
+        {
+          "content": 709,
+          "overflow": "auto",
+          "width": 655
+        }
+      ]
+    },
+    {
+      "name": "report-parameters",
+      "viewport": "1920x1080",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 1920,
+      "primaryWidth": null,
+      "width": 1920,
+      "wrappers": []
+    },
+    {
+      "name": "report-parameters",
+      "viewport": "1440x900",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 1440,
+      "primaryWidth": null,
+      "width": 1440,
+      "wrappers": []
+    },
+    {
+      "name": "report-parameters",
+      "viewport": "1366x768",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 1366,
+      "primaryWidth": null,
+      "width": 1366,
+      "wrappers": []
+    },
+    {
+      "name": "report-parameters",
+      "viewport": "768x1024",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 768,
+      "primaryWidth": null,
+      "width": 768,
+      "wrappers": []
+    },
+    {
+      "name": "report-parameters",
+      "viewport": "390x844",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 375,
+      "primaryWidth": null,
+      "width": 390,
+      "wrappers": []
+    },
+    {
+      "name": "report-parameters",
+      "viewport": "200-percent",
+      "browserZoom": {
+        "original": {
+          "dpr": 1,
+          "width": 1440
+        },
+        "enlarged": {
+          "dpr": 2,
+          "width": 720
+        }
+      },
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 712,
+      "primaryWidth": null,
+      "width": 720,
+      "wrappers": []
+    },
+    {
+      "name": "report",
+      "viewport": "1920x1080",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 1905,
+      "primaryWidth": 198.515625,
+      "width": 1920,
+      "wrappers": [
+        {
+          "content": 1511,
+          "overflow": "auto",
+          "width": 1511
+        }
+      ]
+    },
+    {
+      "name": "report",
+      "viewport": "1440x900",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 1425,
+      "primaryWidth": 192,
+      "width": 1440,
+      "wrappers": [
+        {
+          "content": 1490,
+          "overflow": "auto",
+          "width": 1088
+        }
+      ]
+    },
+    {
+      "name": "report",
+      "viewport": "1366x768",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 1351,
+      "primaryWidth": 192,
+      "width": 1366,
+      "wrappers": [
+        {
+          "content": 1490,
+          "overflow": "auto",
+          "width": 1014
+        }
+      ]
+    },
+    {
+      "name": "report",
+      "viewport": "768x1024",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 753,
+      "primaryWidth": 192,
+      "width": 768,
+      "wrappers": [
+        {
+          "content": 1490,
+          "overflow": "auto",
+          "width": 688
+        }
+      ]
+    },
+    {
+      "name": "report",
+      "viewport": "390x844",
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 375,
+      "primaryWidth": 192,
+      "width": 390,
+      "wrappers": [
+        {
+          "content": 1490,
+          "overflow": "auto",
+          "width": 326
+        }
+      ],
+      "keyboard": {
+        "active": true,
+        "outline": "solid",
+        "visible": true,
+        "scrollLeft": 20
+      }
+    },
+    {
+      "name": "report",
+      "viewport": "200-percent",
+      "browserZoom": {
+        "original": {
+          "dpr": 1,
+          "width": 1440
+        },
+        "enlarged": {
+          "dpr": 2,
+          "width": 720
+        }
+      },
+      "collisions": 0,
+      "outside": [],
+      "overflowingText": 0,
+      "pageWidth": 712,
+      "primaryWidth": 192,
+      "width": 720,
+      "wrappers": [
+        {
+          "content": 1490,
+          "overflow": "auto",
+          "width": 655
+        }
+      ]
+    }
+  ],
+  "navigation": [
+    {
+      "role": "ADMIN",
+      "viewport": "1920x1080",
+      "mobileMenu": false,
+      "height": 1080,
+      "pageWidth": 1920,
+      "width": 1920
+    },
+    {
+      "role": "ADMIN",
+      "viewport": "1440x900",
+      "mobileMenu": false,
+      "height": 900,
+      "pageWidth": 1425,
+      "width": 1440
+    },
+    {
+      "role": "ADMIN",
+      "viewport": "1366x768",
+      "mobileMenu": false,
+      "height": 768,
+      "pageWidth": 1351,
+      "width": 1366
+    },
+    {
+      "role": "ADMIN",
+      "viewport": "768x1024",
+      "mobileMenu": true,
+      "height": 1024,
+      "pageWidth": 753,
+      "width": 768
+    },
+    {
+      "role": "ADMIN",
+      "viewport": "390x844",
+      "mobileMenu": true,
+      "height": 844,
+      "pageWidth": 375,
+      "width": 390
+    },
+    {
+      "role": "OPERATOR",
+      "viewport": "1920x1080",
+      "mobileMenu": false,
+      "height": 1080,
+      "pageWidth": 1920,
+      "width": 1920
+    },
+    {
+      "role": "OPERATOR",
+      "viewport": "1440x900",
+      "mobileMenu": false,
+      "height": 900,
+      "pageWidth": 1425,
+      "width": 1440
+    },
+    {
+      "role": "OPERATOR",
+      "viewport": "1366x768",
+      "mobileMenu": false,
+      "height": 768,
+      "pageWidth": 1351,
+      "width": 1366
+    },
+    {
+      "role": "OPERATOR",
+      "viewport": "768x1024",
+      "mobileMenu": true,
+      "height": 1024,
+      "pageWidth": 753,
+      "width": 768
+    },
+    {
+      "role": "OPERATOR",
+      "viewport": "390x844",
+      "mobileMenu": true,
+      "height": 844,
+      "pageWidth": 375,
+      "width": 390
+    },
+    {
+      "role": "ACCOUNTANT",
+      "viewport": "1920x1080",
+      "mobileMenu": false,
+      "height": 1080,
+      "pageWidth": 1905,
+      "width": 1920
+    },
+    {
+      "role": "ACCOUNTANT",
+      "viewport": "1440x900",
+      "mobileMenu": false,
+      "height": 900,
+      "pageWidth": 1425,
+      "width": 1440
+    },
+    {
+      "role": "ACCOUNTANT",
+      "viewport": "1366x768",
+      "mobileMenu": false,
+      "height": 768,
+      "pageWidth": 1351,
+      "width": 1366
+    },
+    {
+      "role": "ACCOUNTANT",
+      "viewport": "768x1024",
+      "mobileMenu": true,
+      "height": 1024,
+      "pageWidth": 753,
+      "width": 768
+    },
+    {
+      "role": "ACCOUNTANT",
+      "viewport": "390x844",
+      "mobileMenu": true,
+      "height": 844,
+      "pageWidth": 375,
+      "width": 390
+    },
+    {
+      "role": "MANAGER",
+      "viewport": "1920x1080",
+      "mobileMenu": false,
+      "height": 1080,
+      "pageWidth": 1920,
+      "width": 1920
+    },
+    {
+      "role": "MANAGER",
+      "viewport": "1440x900",
+      "mobileMenu": false,
+      "height": 900,
+      "pageWidth": 1425,
+      "width": 1440
+    },
+    {
+      "role": "MANAGER",
+      "viewport": "1366x768",
+      "mobileMenu": false,
+      "height": 768,
+      "pageWidth": 1351,
+      "width": 1366
+    },
+    {
+      "role": "MANAGER",
+      "viewport": "768x1024",
+      "mobileMenu": true,
+      "height": 1024,
+      "pageWidth": 753,
+      "width": 768
+    },
+    {
+      "role": "MANAGER",
+      "viewport": "390x844",
+      "mobileMenu": true,
+      "height": 844,
+      "pageWidth": 375,
+      "width": 390
+    },
+    {
+      "role": "CLIENT",
+      "viewport": "1920x1080",
+      "mobileMenu": false,
+      "height": 1080,
+      "pageWidth": 1920,
+      "width": 1920
+    },
+    {
+      "role": "CLIENT",
+      "viewport": "1440x900",
+      "mobileMenu": false,
+      "height": 900,
+      "pageWidth": 1440,
+      "width": 1440
+    },
+    {
+      "role": "CLIENT",
+      "viewport": "1366x768",
+      "mobileMenu": false,
+      "height": 768,
+      "pageWidth": 1366,
+      "width": 1366
+    },
+    {
+      "role": "CLIENT",
+      "viewport": "768x1024",
+      "mobileMenu": true,
+      "height": 1024,
+      "pageWidth": 768,
+      "width": 768
+    },
+    {
+      "role": "CLIENT",
+      "viewport": "390x844",
+      "mobileMenu": true,
+      "height": 844,
+      "pageWidth": 375,
+      "width": 390
+    }
+  ],
+  "fixtures": {
+    "clientId": "26c1a89b-dfe2-415f-843c-43e975c290e1",
+    "accountId": "f6c2f484-f7a9-4a3c-8eed-8208e6f923dc",
+    "accountNumber": "LS-0000000021",
+    "documentPrefix": "E11-UI-yandex-21df5a4e",
+    "today": "2026-11-23",
+    "chargeId": "a177c26b-f9a8-4a64-89d4-a3bfa8401f1a",
+    "paymentId": "6f21073d-c384-4942-bbca-1f60fc91d172",
+    "chargeCorrection": "2d81e1ed-b836-48b8-bfd9-621c1bc781cc",
+    "paymentCorrection": "2cf77125-2133-496a-b17f-0a3a371662e5"
+  },
+  "binary": "C:\\Users\\hebey\\AppData\\Local\\Yandex\\YandexBrowser\\Application\\browser.exe",
+  "driverPath": "C:\\vyz\\incheneria\\account-service\\.local\\e11-continuation\\browsers\\yandex-driver\\yandexdriver.exe",
+  "product": {
+    "ProductName": "Yandex",
+    "ProductVersion": "26.10.3.771",
+    "CompanyName": "YANDEX LLC",
+    "OriginalFilename": "browser.exe",
+    "driverExecutableVersion": "ChromeDriver 152.0.7977.140 (6e40f6ab5ce6fa479871b1a5c2d42c257ac0d3a6)",
+    "runningExecutable": "C:\\Users\\hebey\\AppData\\Local\\Yandex\\YandexBrowser\\Application\\browser.exe",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/152.0.0.0 YaBrowser/26.10.0.0 Safari/537.36"
+  },
+  "browserName": "chrome",
+  "browserVersion": "152.0.7977.771",
+  "platform": "",
+  "driverVersion": "152.0.7977.140 (6e40f6ab5ce6fa479871b1a5c2d42c257ac0d3a6)",
+  "tls": {
+    "origin": "https://localhost:18448",
+    "method": "browser site exception in disposable profile",
+    "preflight": "validated CA, hostname and exact leaf SPKI",
+    "warning": "ERR_CERT_AUTHORITY_INVALID"
+  },
+  "yandexZoom": {
+    "method": "200% default zoom in a separate temporary profile",
+    "tls": {
+      "origin": "https://localhost:18448",
+      "preflight": "validated CA, hostname and exact leaf SPKI",
+      "verifiedEvents": 6,
+      "deniedEvents": 0
+    }
+  },
+  "profileCleanupNotes": [
+    {
+      "directory": "C:\\vyz\\incheneria\\account-service\\.local\\redesign-2026-11-23\\after-final-yandex-02\\yandex\\zoom-200-NVQ78c",
+      "message": "EPERM, Permission denied: \\\\?\\C:\\vyz\\incheneria\\account-service\\.local\\redesign-2026-11-23\\after-final-yandex-02\\yandex\\zoom-200-NVQ78c\\profile '\\\\?\\C:\\vyz\\incheneria\\account-service\\.local\\redesign-2026-11-23\\after-final-yandex-02\\yandex\\zoom-200-NVQ78c\\profile'"
+    }
+  ],
+  "printArtifacts": [
+    {
+      "name": "statement-print",
+      "cssPath": "/css/print.css",
+      "cssSha256": "3d238504eba3c4d389886f36f5b08d3474dd4aee66590866e71f7253cdaeb2f0",
+      "pdfSha256": "2594881b16b47ec8311f78130189b671e1cb44e0c0ce6cacdb0feb0a80d53f9e",
+      "pdfBytes": 96965
+    },
+    {
+      "name": "report-print",
+      "cssPath": "/css/print.css",
+      "cssSha256": "3d238504eba3c4d389886f36f5b08d3474dd4aee66590866e71f7253cdaeb2f0",
+      "pdfSha256": "20a291a774ed5529f81879870c5fa76d9693c46d0c3dd505fe1794073f428be3",
+      "pdfBytes": 81117
+    }
+  ],
+  "finished": "2026-11-23T19:31:44.577Z",
+  "status": "PASS"
+}

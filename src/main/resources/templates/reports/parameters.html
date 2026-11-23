@@ -1,40 +1,62 @@
 <!doctype html>
 <html lang="ru" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Финансовые отчёты</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
-<body><main class="wide">
-<nav><a th:href="@{/}">Главная</a><a th:href="@{/accounts}">Лицевые счета</a></nav>
-<h1>Финансовые отчёты</h1>
-<nav aria-label="Вид отчёта">
-    <a th:each="type : ${types}" th:href="@{/reports(type=${type.name()})}"
-       th:classappend="${type == selectedType ? 'button-link' : ''}"
-       th:attr="aria-current=${type == selectedType ? 'page' : null}" th:text="${type.title}"></a>
-</nav>
-<h2 th:text="${selectedType.title}"></h2>
-<p class="alert" role="alert" th:if="${formError}" th:text="${formError}"></p>
-<form method="get" th:action="@{/reports/result}">
-    <input type="hidden" name="type" th:value="${selectedType.name()}">
-    <div class="filters" th:switch="${selectedType.name()}">
-        <label th:case="'CHARGES'">Месяц <input type="month" name="month" required th:value="${month}"></label>
-        <label th:case="'PAYMENTS'">Месяц <input type="month" name="month" required th:value="${month}"></label>
-        <label th:case="'DEBT'">На дату <input type="date" name="asOf" required th:value="${asOf}"></label>
-        <th:block th:case="'MOVEMENT'">
-            <label>С даты <input type="date" name="from" required th:value="${from}"></label>
-            <label>По дату <input type="date" name="to" required th:value="${to}"></label>
-        </th:block>
-    </div>
-    <div class="filters">
-        <label>UUID клиента <input type="text" name="clientId" maxlength="36" th:value="${clientId}"
-                                  placeholder="Все клиенты" aria-describedby="client-filter-hint"></label>
-        <label>Текущий статус счёта <select name="status">
-            <option value="" th:selected="${status == ''}">Все статусы</option>
-            <option value="OPEN" th:selected="${status == 'OPEN'}">Открыт</option>
-            <option value="SUSPENDED" th:selected="${status == 'SUSPENDED'}">Приостановлен</option>
-            <option value="CLOSED" th:selected="${status == 'CLOSED'}">Закрыт</option>
-        </select></label>
-        <label>Строк на странице <input type="number" name="size" required min="1" max="100" th:value="${size}"></label>
-    </div>
-    <p class="hint" id="client-filter-hint">UUID можно скопировать из адреса карточки в разделе «Клиенты». Если поле пустое, отчёт включает всех клиентов.</p>
-    <button type="submit">Сформировать отчёт</button>
-</form>
-</main></body></html>
+<head th:replace="~{fragments/layout :: head('Финансовые отчёты', false)}"></head>
+<body th:replace="~{fragments/layout :: shell('Финансовые отчёты', 'reports', ~{::main})}">
+<main id="main-content">
+    <header class="page-header"><div><h1>Финансовые отчёты</h1><p class="text-secondary">Начисления, платежи и остатки по лицевым счетам за выбранный период.</p></div></header>
+    <nav class="nav nav-tabs report-tabs" aria-label="Вид отчёта">
+        <a class="nav-link" th:each="type : ${types}"
+           th:href="@{/reports(type=${type.name()},clientId=${clientId},status=${status},size=${size})}"
+           th:classappend="${type == selectedType ? 'active' : ''}"
+           th:attr="aria-current=${type == selectedType ? 'page' : null}"
+           th:text="${type.name() == 'CHARGES' ? 'Начисления' : (type.name() == 'PAYMENTS' ? 'Платежи' : (type.name() == 'DEBT' ? 'Задолженность' : 'Движение по счетам'))}"></a>
+    </nav>
+    <section class="card" aria-labelledby="report-filters-title">
+        <div class="card-header"><h2 class="card-title" id="report-filters-title" th:text="${selectedType.title}"></h2></div>
+        <div class="card-body">
+            <p th:replace="~{fragments/ui :: alert('danger', ${formError})}"></p>
+            <form method="get" th:action="@{/reports/result}" class="report-filters">
+                <input type="hidden" name="type" th:value="${selectedType.name()}">
+                <div class="form-grid" th:switch="${selectedType.name()}">
+                    <th:block th:case="'CHARGES'"><div th:replace="~{fragments/ui :: field('report-month', 'month', 'Месяц', 'month', ${month}, true, null)}"></div></th:block>
+                    <th:block th:case="'PAYMENTS'"><div th:replace="~{fragments/ui :: field('report-month', 'month', 'Месяц', 'month', ${month}, true, null)}"></div></th:block>
+                    <th:block th:case="'DEBT'"><div th:replace="~{fragments/ui :: field('report-asof', 'asOf', 'Дата расчёта', 'date', ${asOf}, true, null)}"></div></th:block>
+                    <th:block th:case="'MOVEMENT'">
+                        <div th:replace="~{fragments/ui :: field('report-from', 'from', 'Дата начала', 'date', ${from}, true, null)}"></div>
+                        <div th:replace="~{fragments/ui :: field('report-to', 'to', 'Дата окончания', 'date', ${to}, true, null)}"></div>
+                    </th:block>
+                </div>
+                <div class="form-grid">
+                    <div th:replace="~{fragments/client-picker :: picker('report-client', ${clientId}, ${clientQuery}, @{/reports})}"></div>
+                    <div><label class="form-label" for="report-status">Статус счёта</label>
+                        <select class="form-select" id="report-status" name="status"><option value="" th:selected="${status == ''}">Все статусы</option><option value="OPEN" th:selected="${status == 'OPEN'}">Открыт</option><option value="SUSPENDED" th:selected="${status == 'SUSPENDED'}">Приостановлен</option><option value="CLOSED" th:selected="${status == 'CLOSED'}">Закрыт</option></select>
+                    </div>
+                    <div><label class="form-label" for="report-size">Строк на странице</label><input class="form-control" id="report-size" type="number" name="size" required min="1" max="100" th:value="${size}"></div>
+                </div>
+                <div class="form-actions"><button class="btn btn-primary" type="submit">Сформировать отчёт</button><a th:replace="~{fragments/ui :: button(@{/reports(type=${selectedType.name()})}, 'Сбросить фильтры', 'outline-secondary')}"></a></div>
+            </form>
+        </div>
+    </section>
+    <section class="card client-search-results" th:if="${clientSearchMessage != null or clientMatches != null}" aria-labelledby="client-matches-title">
+        <div class="card-header"><h2 class="card-title" id="client-matches-title">Результаты поиска клиента</h2></div>
+        <div class="card-body">
+            <p th:if="${clientSearchMessage}" th:text="${clientSearchMessage}"></p>
+            <th:block th:if="${clientMatches != null}">
+                <p class="text-secondary" th:if="${clientMatches.empty}">Клиенты не найдены. Попробуйте изменить имя или название.</p>
+                <p class="form-hint" th:if="${moreClientMatches}">Показаны первые 20 клиентов. Уточните запрос, если нужного клиента нет в списке.</p>
+                <ul class="list-group list-group-flush"><li class="list-group-item" th:each="client : ${clientMatches}">
+                    <form method="get" th:action="@{/reports}" class="client-choice">
+                        <input type="hidden" name="type" th:value="${selectedType.name()}"><input type="hidden" name="status" th:value="${status}"><input type="hidden" name="size" th:value="${size}">
+                        <input th:if="${selectedType.name() == 'CHARGES' or selectedType.name() == 'PAYMENTS'}" type="hidden" name="month" th:value="${month}">
+                        <input th:if="${selectedType.name() == 'DEBT'}" type="hidden" name="asOf" th:value="${asOf}">
+                        <th:block th:if="${selectedType.name() == 'MOVEMENT'}"><input type="hidden" name="from" th:value="${from}"><input type="hidden" name="to" th:value="${to}"></th:block>
+                        <div><strong th:text="${client.displayName}"></strong><div class="text-secondary" th:text="${client.identifierType + ' ' + client.identifierValue}"></div></div>
+                        <button class="btn btn-outline-primary" type="submit" name="clientId" th:value="${client.id}">Выбрать</button>
+                    </form>
+                </li></ul>
+            </th:block>
+        </div>
+    </section>
+</main>
+</body>
+</html>

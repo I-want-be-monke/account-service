@@ -1,6 +1,15 @@
-<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Мои лицевые счета</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide"><nav><a th:href="@{/}">Главная</a> <a th:href="@{/me/client}">Моя карточка</a></nav><h1>Мои лицевые счета</h1>
-<div class="table-wrap"><table><thead><tr><th>Номер</th><th>Статус</th><th>Дата открытия</th><th>Сальдо, ₽</th><th>Действие</th></tr></thead><tbody>
-<tr th:each="a : ${accounts.content}"><td><a th:href="@{/accounts/{id}(id=${a.id})}" th:text="${a.accountNumber}"></a></td><td th:text="${a.status == 'OPEN' ? 'Открыт' : (a.status == 'SUSPENDED' ? 'Приостановлен' : 'Закрыт')}"></td><td th:text="${a.openedOn}"></td><td th:text="${a.currentBalance}"></td><td><a th:href="@{/accounts/{id}/operations(id=${a.id})}">История</a></td></tr>
-<tr th:if="${accounts.empty}"><td colspan="5">У вас пока нет лицевых счетов.</td></tr></tbody></table></div>
-<div class="pager"><a th:if="${accounts.hasPrevious()}" th:href="@{/my/accounts(page=${accounts.number - 1})}">Назад</a><span th:text="|Страница ${accounts.number + 1} из ${accounts.totalPages == 0 ? 1 : accounts.totalPages}|"></span><a th:if="${accounts.hasNext()}" th:href="@{/my/accounts(page=${accounts.number + 1})}">Далее</a></div>
-</main></body></html>
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Мои лицевые счета', false)}"></head>
+<body><div th:replace="~{fragments/layout :: shell('Мои лицевые счета', 'accounts', ~{::main})}"><main id="main-content" class="page-content">
+    <div class="page-heading"><div><h1>Мои лицевые счета</h1><p class="text-secondary">Сальдо, история и выписки по вашим счетам.</p></div><a th:replace="~{fragments/ui :: button(@{/me/client}, 'Моя карточка', 'outline-secondary')}"></a></div>
+    <section class="card card-table"><div class="card-header"><h2 class="card-title">Ваши счета</h2><span class="text-secondary" th:text="|Всего ${accounts.totalElements}|"></span></div>
+        <div class="table-responsive" tabindex="0" role="region" aria-label="Ваши счета"><table class="table table-vcenter"><thead><tr><th scope="col">Номер счёта</th><th scope="col">Статус</th><th scope="col">Дата открытия</th><th scope="col" class="text-end">Сальдо</th><th scope="col">Действия</th></tr></thead><tbody>
+        <tr th:each="a : ${accounts.content}"><td><a class="fw-semibold" th:href="@{/accounts/{id}(id=${a.id})}" th:text="${a.accountNumber}"></a></td><td><span th:replace="~{fragments/ui :: status(${a.status})}"></span></td><td th:text="${@ui.date(a.openedOn)}"></td><td class="money text-end" th:text="${@ui.money(a.currentBalance)}"></td><td><div class="action-bar"><a class="btn btn-outline-secondary btn-sm" th:href="@{/accounts/{id}/operations(id=${a.id})}">История</a><a class="btn btn-outline-secondary btn-sm" th:href="@{/accounts/{id}/statement(id=${a.id})}">Выписка</a></div></td></tr>
+        <tr th:if="${accounts.empty}"><td colspan="5"><div class="empty-state"><h2>У вас пока нет лицевых счетов</h2><p>После открытия счёта здесь появятся его номер, сальдо и история.</p></div></td></tr>
+        </tbody></table></div>
+        <div class="card-footer" th:with="previous=${accounts.hasPrevious()} ? @{/my/accounts(page=${accounts.number - 1})} : ${null}, next=${accounts.hasNext()} ? @{/my/accounts(page=${accounts.number + 1})} : ${null}">
+            <nav th:replace="~{fragments/ui :: pager(${previous}, ${next}, ${accounts.number}, ${accounts.totalPages})}"></nav>
+        </div>
+    </section><p class="form-hint">Положительное сальдо означает задолженность, отрицательное — аванс.</p>
+</main></div></body></html>

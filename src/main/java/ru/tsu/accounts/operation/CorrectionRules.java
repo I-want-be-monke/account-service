@@ -16,14 +16,14 @@ public final class CorrectionRules {
   LocalDate today=LocalDate.now(ZoneId.of("Europe/Moscow"));
   LocalDate date;
   try {date=LocalDate.parse(form.getOperationDate());}
-  catch(Exception ex){throw bad("Некорректная дата исправления.");}
-  if(!date.equals(today)||date.isBefore(historyStart))throw bad("Исправление проводится текущей датой счета.");
+  catch(Exception ex){throw bad("Некорректная дата исправления.","operationDate");}
+  if(!date.equals(today)||date.isBefore(historyStart))throw bad("Исправление проводится текущей датой счета.","operationDate");
   String target=form.getTargetAmount()==null?"":form.getTargetAmount().strip();
-  if(!target.matches("[0-9]{1,17}([.,][0-9]{1,2})?"))throw bad("Укажите неотрицательную целевую сумму с двумя знаками после запятой.");
+  if(!target.matches("[0-9]{1,17}([.,][0-9]{1,2})?"))throw bad("Укажите неотрицательную целевую сумму с двумя знаками после запятой.","targetAmount");
   BigDecimal amount=new BigDecimal(target.replace(',','.')).setScale(2);
-  if(amount.compareTo(MAX)>0)throw bad("Целевая сумма выходит за допустимый предел.");
-  String reason=required(form.getReason(),1000,"Причина");
-  String basis=required(form.getBasis(),500,"Основание");
+  if(amount.compareTo(MAX)>0)throw bad("Целевая сумма выходит за допустимый предел.","targetAmount");
+  String reason=required(form.getReason(),1000,"Причина","reason");
+  String basis=required(form.getBasis(),500,"Основание","basis");
   return new Input(date,amount,reason,basis);
  }
  public static Effect calculate(BigDecimal originalAmount,int originalSign,BigDecimal postedCorrectionEffect,
@@ -33,17 +33,20 @@ public final class CorrectionRules {
   BigDecimal current=originalAmount.multiply(BigDecimal.valueOf(originalSign)).add(postedCorrectionEffect);
   BigDecimal desired=target.multiply(BigDecimal.valueOf(originalSign));
   BigDecimal delta=desired.subtract(current);
-  if(delta.signum()==0)throw bad("Целевая сумма уже действует. Нулевое исправление не создается.");
-  if(delta.abs().compareTo(MAX)>0)throw bad("Разница выходит за допустимый предел.");
+  if(delta.signum()==0)throw bad("Целевая сумма уже действует. Нулевое исправление не создается.","targetAmount");
+  if(delta.abs().compareTo(MAX)>0)throw bad("Разница выходит за допустимый предел.","targetAmount");
   return new Effect(delta.setScale(2),correctionCount);
  }
- private static String required(String raw,int max,String label){
-  if(raw==null||raw.strip().isEmpty())throw bad(label+" обязательна.");
+ private static String required(String raw,int max,String label,String field){
+  if(raw==null||raw.strip().isEmpty())throw bad(label+" обязательна.",field);
   String value=raw.strip();
-  if(value.length()>max||value.chars().anyMatch(Character::isISOControl))throw bad(label+" содержит недопустимые символы или слишком длинная.");
+  if(value.length()>max||value.chars().anyMatch(Character::isISOControl))throw bad(label+" содержит недопустимые символы или слишком длинная.",field);
   return value;
  }
  private static UserCommandException bad(String message){
-  return new UserCommandException(HttpStatus.BAD_REQUEST,"CORRECTION_VALIDATION",message);
+  return bad(message,null);
+ }
+ private static UserCommandException bad(String message,String field){
+  return new UserCommandException(HttpStatus.BAD_REQUEST,"CORRECTION_VALIDATION",message,field);
  }
 }

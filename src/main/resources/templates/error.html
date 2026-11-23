@@ -1,6 +1,6 @@
-<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>Ошибка</title>
-<link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="card">
-<h1>Операция не выполнена</h1><p th:text="${message}">Попробуйте позже.</p>
-<p class="hint">Код: <span th:text="${status}"></span>. ID запроса: <code th:text="${requestId}"></code></p>
-<a th:href="@{/}">На главную</a></main></body></html>
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head th:replace="~{fragments/layout :: head('Операция не выполнена', false)}"></head><body>
+<div th:replace="~{fragments/layout :: shell('Операция не выполнена', '', ~{::main})}"><main id="main-content" class="page-content"><section class="card error-page">
+<div class="error-code" th:text="${status ?: 'Ошибка'}"></div><h1 th:text="${status == 404 ? 'Страница не найдена' : status == 503 ? 'Сервис временно недоступен' : 'Операция не выполнена'}">Операция не выполнена</h1>
+<p th:text="${message ?: 'Не удалось выполнить запрос. Вернитесь на главную страницу и повторите действие.'}"></p><a class="btn btn-primary" th:href="@{/}">На главную</a>
+<details class="technical-details"><summary>Данные для обращения в поддержку</summary><p>Код: <span th:text="${status}"></span></p><p>ID запроса: <code th:text="${requestId}"></code></p></details>
+</section></main></div></body></html>

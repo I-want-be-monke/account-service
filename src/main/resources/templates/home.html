@@ -1,20 +1,36 @@
-<!doctype html>
-<html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1"><title>Главная — Лицевые счета</title>
-  <link rel="stylesheet" th:href="@{/css/app.css}"></head>
-<body><main class="card"><h1>Сервис лицевых счетов</h1>
-  <p>Вы вошли как <strong th:text="${name}">Пользователь</strong>.</p>
-  <p>Роль: <span th:switch="${role}"><span th:case="'ADMIN'">Администратор</span><span th:case="'OPERATOR'">Оператор</span><span th:case="'ACCOUNTANT'">Бухгалтер-расчетчик</span><span th:case="'MANAGER'">Руководитель</span><span th:case="'CLIENT'">Клиент</span></span></p>
-  <nav><a th:if="${role == 'ADMIN'}" th:href="@{/admin/users}">Пользователи</a>
-    <a th:if="${role == 'ADMIN' or role == 'MANAGER'}" th:href="@{/audit}">Журнал действий</a>
-    <a th:if="${role != 'CLIENT'}" th:href="@{/clients}">Клиенты</a>
-    <a th:if="${role == 'CLIENT'}" th:href="@{/me/client}">Моя карточка</a>
-    <a th:if="${role == 'CLIENT'}" th:href="@{/my/accounts}">Мои счета</a>
-    <a th:if="${role != 'CLIENT'}" th:href="@{/accounts}">Счета</a>
-    <a th:if="${role == 'ADMIN' or role == 'ACCOUNTANT' or role == 'MANAGER'}" th:href="@{/reports}">Финансовые отчёты</a></nav>
-  <p>Начисления, платежи и исправления проводятся бухгалтером после проверки черновика. История сохраняет исходные документы и связанные корректировки; выписку с печатью и экспортом можно открыть из карточки счёта.</p>
-  <form method="post" th:action="@{/logout}">
-    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-    <button type="submit">Выйти</button>
-  </form>
-</main></body></html>
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head th:replace="~{fragments/layout :: head('Рабочий стол', false)}"></head><body>
+<div th:replace="~{fragments/layout :: shell('Рабочий стол', 'home', ~{::main})}"><main id="main-content" class="page-content">
+  <header class="page-heading"><div><p class="eyebrow" th:text="${@ui.status(role)}">Рабочее пространство</p><h1>Рабочий стол</h1><p>Добро пожаловать, <span th:text="${name}">Пользователь</span>. Выберите задачу, с которой хотите начать.</p></div></header>
+  <div class="dashboard-grid" th:if="${role == 'ADMIN'}">
+    <a class="card action-card" th:href="@{/admin/users}"><svg th:replace="~{fragments/layout :: icon('users')}"></svg><h2>Пользователи</h2><p>Учётные записи, роли и доступ к системе.</p><span class="card-link">Управлять доступом<svg th:replace="~{fragments/layout :: icon('arrow')}"></svg></span></a>
+    <a class="card action-card" th:href="@{/clients}"><svg th:replace="~{fragments/layout :: icon('clients')}"></svg><h2>Клиенты</h2><p>Карточки физических лиц и организаций.</p><span class="card-link">Открыть справочник<svg th:replace="~{fragments/layout :: icon('arrow')}"></svg></span></a>
+    <a class="card action-card" th:href="@{/audit}"><svg th:replace="~{fragments/layout :: icon('audit')}"></svg><h2>Журнал действий</h2><p>События безопасности, изменения и доступ.</p><span class="card-link">Проверить события<svg th:replace="~{fragments/layout :: icon('arrow')}"></svg></span></a>
+  </div>
+  <div class="dashboard-grid" th:if="${role == 'OPERATOR'}">
+    <a class="card action-card" th:href="@{/clients/new}"><svg th:replace="~{fragments/layout :: icon('clients')}"></svg><h2>Создать клиента</h2><p>Добавьте карточку и проверьте реквизиты.</p><span class="card-link">Новый клиент<svg th:replace="~{fragments/layout :: icon('arrow')}"></svg></span></a>
+    <a class="card action-card" th:href="@{/clients}"><svg th:replace="~{fragments/layout :: icon('accounts')}"></svg><h2>Открыть счёт</h2><p>Найдите клиента и откройте счёт из его карточки.</p><span class="card-link">Выбрать клиента<svg th:replace="~{fragments/layout :: icon('arrow')}"></svg></span></a>
+    <a class="card action-card" th:href="@{/workspace/statements}"><svg th:replace="~{fragments/layout :: icon('statements')}"></svg><h2>Подготовить выписку</h2><p>История движений и сальдо за нужный период.</p><span class="card-link">Выбрать счёт<svg th:replace="~{fragments/layout :: icon('arrow')}"></svg></span></a>
+  </div>
+  <div class="dashboard-grid" th:if="${role == 'ACCOUNTANT'}">
+    <a class="card action-card" th:href="@{/workspace/operations}"><svg th:replace="~{fragments/layout :: icon('operations')}"></svg><h2>Начисления и платежи</h2><p>Выберите счёт для подготовки финансовой операции.</p><span class="card-link">К операциям<svg th:replace="~{fragments/layout :: icon('arrow')}"></svg></span></a>
+    <a class="card action-card" th:href="@{/reports}"><svg th:replace="~{fragments/layout :: icon('reports')}"></svg><h2>Финансовые отчёты</h2><p>Начисления, платежи, задолженность и движение.</p><span class="card-link">Сформировать отчёт<svg th:replace="~{fragments/layout :: icon('arrow')}"></svg></span></a>
+    <a class="card action-card" th:href="@{/workspace/statements}"><svg th:replace="~{fragments/layout :: icon('statements')}"></svg><h2>Выписки</h2><p>Сверка истории счёта, печать и полный CSV.</p><span class="card-link">Подготовить выписку<svg th:replace="~{fragments/layout :: icon('arrow')}"></svg></span></a>
+  </div>
+  <div class="dashboard-grid" th:if="${role == 'MANAGER'}">
+    <a class="card action-card" th:href="@{/reports}"><svg th:replace="~{fragments/layout :: icon('reports')}"></svg><h2>Финансовые отчёты</h2><p>Реальные итоги по всем счетам выбранного периода.</p><span class="card-link">Открыть отчёты<svg th:replace="~{fragments/layout :: icon('arrow')}"></svg></span></a>
+    <a class="card action-card" th:href="@{/workspace/operations}"><svg th:replace="~{fragments/layout :: icon('operations')}"></svg><h2>История операций</h2><p>Проведённые документы и связанные исправления.</p><span class="card-link">Выбрать счёт<svg th:replace="~{fragments/layout :: icon('arrow')}"></svg></span></a>
+    <a class="card action-card" th:href="@{/audit}"><svg th:replace="~{fragments/layout :: icon('audit')}"></svg><h2>Журнал действий</h2><p>Разрешённые события доступа и изменения данных.</p><span class="card-link">Проверить события<svg th:replace="~{fragments/layout :: icon('arrow')}"></svg></span></a>
+  </div>
+  <section th:if="${role == 'CLIENT'}" aria-labelledby="own-accounts-title">
+    <div class="section-heading"><h2 id="own-accounts-title">Ваши лицевые счета</h2><a class="btn btn-outline-secondary btn-sm" th:href="@{/my/accounts}" th:text="|Все счета (${ownAccounts.totalElements})|"></a></div>
+    <div class="metric-grid"><article class="card" th:each="a : ${ownAccounts.content}"><div class="card-body"><div class="section-heading"><a class="account-number" th:href="@{/accounts/{id}(id=${a.id})}" th:text="${a.accountNumber}"></a><span th:replace="~{fragments/ui :: status(${a.status})}"></span></div><p class="form-hint">Текущее сальдо</p><strong class="metric-value" th:text="${@ui.money(a.currentBalance)}"></strong><p class="form-hint" th:text="${a.currentBalance.signum() > 0 ? 'Задолженность' : a.currentBalance.signum() < 0 ? 'Переплата' : 'Задолженности нет'}"></p><div class="action-bar mb-0"><a class="btn btn-outline-secondary btn-sm" th:href="@{/accounts/{id}/operations(id=${a.id})}">История</a><a class="btn btn-primary btn-sm" th:href="@{/accounts/{id}/statement(id=${a.id})}">Выписка</a></div></div></article></div>
+    <div class="card empty-state" th:if="${ownAccounts.empty}"><h3>Пока нет лицевых счетов</h3><p>Когда оператор откроет счёт, он появится в вашем кабинете.</p></div>
+    <p class="form-hint" th:if="${ownAccounts.hasNext()}">Здесь показаны первые 20 счетов. Полный список доступен в разделе «Мои счета».</p>
+    <div class="card"><div class="card-body"><h2>Как читать сальдо</h2><p class="text-secondary mb-0">Положительная сумма означает задолженность. Отрицательная сумма — переплату, которую можно использовать для будущих начислений.</p></div></div>
+  </section>
+  <section class="card card-table" th:if="${role == 'ACCOUNTANT'}" aria-labelledby="drafts-title"><div class="card-header"><div><h2 class="card-title" id="drafts-title">Черновики, ожидающие подтверждения</h2><p>До пяти последних ваших черновиков</p></div></div><div class="table-wrap" tabindex="0" role="region" aria-label="Мои черновики"><table class="table"><thead><tr><th>Дата</th><th>Лицевой счёт</th><th>Операция</th><th class="money">Сумма</th><th>Действие</th></tr></thead><tbody><tr th:each="d : ${recentDrafts}"><td th:text="${@ui.date(d.operation.date)}"></td><td th:text="${d.accountNumber}"></td><td th:text="${@ui.status(d.operation.kind)}"></td><td class="money" th:text="${@ui.money(d.operation.amount)}"></td><td><a class="btn btn-outline-primary btn-sm" th:href="@{/operations/{id}(id=${d.operation.id})}">Проверить черновик</a></td></tr><tr th:if="${recentDrafts.empty}"><td colspan="5"><div class="empty-state"><h3>Все черновики обработаны</h3><p>Для новой операции сначала выберите лицевой счёт.</p><a class="btn btn-outline-primary" th:href="@{/workspace/operations}">Выбрать счёт</a></div></td></tr></tbody></table></div></section>
+  <div class="dashboard-columns" th:if="${role != 'CLIENT'}">
+    <section class="card"><div class="card-header"><h2 class="card-title">Быстрый поиск</h2></div><div class="card-body"><form class="search-panel" method="get" th:action="@{/clients}"><label class="form-label">Клиент<input name="name" placeholder="Имя или название организации" maxlength="200"></label><button class="btn btn-primary">Найти</button></form><hr><form class="search-panel" method="get" th:action="@{/accounts}"><label class="form-label">Лицевой счёт<input name="number" placeholder="Например, LS-0000000001" maxlength="32"></label><button class="btn btn-outline-secondary">Найти</button></form></div></section>
+    <section class="card"><div class="card-header"><h2 class="card-title" th:text="${role == 'ACCOUNTANT' ? 'Проведение без лишних шагов' : 'Работа с данными'}"></h2></div><div class="card-body"><ol class="workflow-list"><li><span class="step-number">1</span><div><strong>Найдите клиента или счёт</strong><p>Поиск по понятным реквизитам, без технических идентификаторов.</p></div></li><li><span class="step-number">2</span><div><strong th:text="${role == 'ACCOUNTANT' ? 'Подготовьте и проверьте черновик' : role == 'MANAGER' ? 'Выберите период и фильтры' : 'Выберите доступное действие'}"></strong><p th:text="${role == 'MANAGER' ? 'Сформируйте отчёт, скачайте CSV или подготовьте печатный документ.' : 'Система покажет сведения и запросит подтверждение изменений.'}"></p></div></li><li><span class="step-number">3</span><div><strong>Проверьте результат</strong><p>Завершённые действия сохраняются в истории.</p></div></li></ol></div></section>
+  </div>
+</main></div></body></html>

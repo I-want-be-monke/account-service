@@ -6,3 +6,4 @@
 *.md text eol=lf
 /migration/demo-package/*.csv text eol=lf
 *.sh text eol=lf
+/src/main/resources/static/vendor/** -text

@@ -30,9 +30,11 @@ public class AccountController {
     private final AccountService accounts;
     private final AccountStatusConfirmation confirmations;
     private final AuditAttemptService attempts;
+    private final ClientPickerModel clientPicker;
     public AccountController(AccountService accounts, AccountStatusConfirmation confirmations,
-                             AuditAttemptService attempts) {
+                             AuditAttemptService attempts, ClientPickerModel clientPicker) {
         this.accounts = accounts; this.confirmations = confirmations; this.attempts = attempts;
+        this.clientPicker = clientPicker;
     }
 
     @GetMapping
@@ -40,10 +42,13 @@ public class AccountController {
     public String list(@RequestParam(defaultValue = "") String number,
                        @RequestParam(defaultValue = "") String status,
                        @RequestParam(required = false) UUID clientId,
+                       @RequestParam(defaultValue = "") String clientQuery,
+                       @RequestParam(defaultValue = "false") boolean searchClients,
                        @RequestParam(defaultValue = "0") int page, Model model) {
         model.addAttribute("accounts", accounts.search(number, status, clientId, page));
         model.addAttribute("number", number); model.addAttribute("status", status);
         model.addAttribute("clientId", clientId);
+        clientPicker.populate(clientId, clientQuery, searchClients || clientId == null && !clientQuery.isBlank(), "", model);
         return "accounts/list";
     }
 
@@ -63,6 +68,8 @@ public class AccountController {
     @PreAuthorize("hasRole('OPERATOR')")
     public String statusPage(@PathVariable UUID id, Model model) {
         model.addAttribute("account", accounts.get(id));
+        model.addAttribute("selectedStatus", "");
+        model.addAttribute("reason", "");
         return "accounts/status";
     }
 
@@ -81,6 +88,8 @@ public class AccountController {
             response.setStatus(e.status().value());
             model.addAttribute("formError", e.getMessage());
             model.addAttribute("account", accounts.get(id));
+            model.addAttribute("selectedStatus", status);
+            model.addAttribute("reason", reason);
             return "accounts/status";
         }
     }

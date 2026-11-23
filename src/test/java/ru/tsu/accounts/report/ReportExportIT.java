@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -109,16 +110,20 @@ class ReportExportIT extends ReportIntegrationSupport {
                 assertThat(money.isTextual()).isTrue();
                 assertThat(money.asText()).isEqualTo(amount.getValue());
                 assertThat(total.get(amount.getKey())).isEqualTo(money.asText());
-                String totalCell = "data-total-key=\"" + amount.getKey() + "\">\\s*<strong>"
-                    + Pattern.quote(money.asText()) + "</strong>";
+                String display = String.format(Locale.US, "%,.2f", new BigDecimal(money.asText()))
+                    .replace(',', ' ').replace('.', ',') + " ₽";
+                String totalCell = "data-total-key=\"" + amount.getKey() + "\"\\s+data-value=\""
+                    + Pattern.quote(money.asText()) + "\">\\s*" + Pattern.quote(display) + "\\s*</div>";
                 assertThat(page).containsPattern(totalCell);
                 assertThat(printed).containsPattern(totalCell);
 
                 var rowMoney = first.path("amounts").path(amount.getKey());
                 assertThat(rowMoney.isTextual()).isTrue();
                 assertThat(csvFirst.get(amount.getKey())).isEqualTo(rowMoney.asText());
-                assertThat(page).containsPattern("data-amount-key=\"" + amount.getKey() + "\">\\s*"
-                    + Pattern.quote(rowMoney.asText()) + "\\s*</td>");
+                String rowDisplay = String.format(Locale.US, "%,.2f", new BigDecimal(rowMoney.asText()))
+                    .replace(',', ' ').replace('.', ',') + " ₽";
+                assertThat(page).containsPattern("data-amount-key=\"" + amount.getKey() + "\"\\s+data-value=\""
+                    + Pattern.quote(rowMoney.asText()) + "\">\\s*" + Pattern.quote(rowDisplay) + "\\s*</td>");
             }
             assertThat(export.getResponse().getContentType()).startsWith("text/csv");
             assertThat(export.getResponse().getHeader("Content-Disposition")).contains("attachment", ".csv");

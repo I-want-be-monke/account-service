@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="picker(prefix, selectedId, selectedName, fallbackAction)" class="client-picker"
+     data-client-picker th:attr="data-search-url=@{/ui/clients/search},data-active-only=${activeOnly == true}">
+    <label class="form-label" th:for="${prefix + '-query'}">Клиент</label>
+    <div class="input-group">
+        <input class="form-control" type="text" name="clientQuery" th:id="${prefix + '-query'}"
+               th:value="${selectedName}" th:placeholder="${activeOnly == true ? 'Найдите активного клиента' : 'Все клиенты · поиск по имени'}" maxlength="200"
+               autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false"
+               th:attr="aria-controls=${prefix + '-results'},aria-describedby=${prefix + '-status'}"
+               data-client-query>
+        <input type="hidden" name="clientId" th:id="${prefix + '-id'}" th:value="${selectedId}" data-client-id>
+        <button class="btn btn-outline-secondary" type="button" aria-label="Сбросить выбранного клиента" data-client-clear>Сбросить</button>
+        <button th:if="${fallbackAction != null}" class="btn btn-outline-secondary" type="submit"
+                name="searchClients" value="1" th:formaction="${fallbackAction}" formmethod="get" formnovalidate>Найти</button>
+    </div>
+    <ul class="client-options" th:id="${prefix + '-results'}" role="listbox" aria-label="Найденные клиенты"
+        data-client-results hidden></ul>
+    <p class="form-hint" th:id="${prefix + '-status'}" role="status" aria-live="polite" data-client-status th:text="${activeOnly == true ? 'Выберите активную карточку для клиентской учётной записи.' : 'Пустое поле включает всех клиентов.'}"></p>
+</div>
+</body>
+</html>

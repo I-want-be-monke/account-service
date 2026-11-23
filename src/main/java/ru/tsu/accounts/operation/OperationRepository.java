@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 public interface OperationRepository extends JpaRepository<FinancialOperation,UUID> {
+ java.util.List<FinancialOperation> findTop5ByStorageStatusAndCreatedByOrderByCreatedAtDescIdDesc(String status,UUID author);
  Optional<FinancialOperation> findByIdempotencyKey(UUID key);
  @Query("select o.accountId from FinancialOperation o where o.id=:id")
  Optional<UUID> findAccountIdById(@Param("id") UUID id);

@@ -1,1 +1,10 @@
-<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Подтверждение статуса</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide"><nav><a th:href="@{/clients/{id}(id=${client.id})}">Отмена</a></nav><h1>Подтвердите изменение</h1><p>Клиент: <strong th:text="${client.displayName}"></strong></p><p>Действие: <strong th:text="${pending.status == 'ARCHIVED' ? 'Перевести в архив' : 'Восстановить'}"></strong></p><p>Причина: <span th:text="${pending.reason}"></span></p><form method="post" th:action="@{/clients/{id}/confirm(id=${client.id})}"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input type="hidden" name="token" th:value="${pending.token}"><button type="submit">Подтвердить</button></form></main></body></html>
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Подтверждение статуса', false)}"></head>
+<body><div th:replace="~{fragments/layout :: shell('Подтверждение статуса', 'clients', ~{::main})}"><main id="main-content" class="page-content">
+
+    <div class="page-heading"><div><h1>Подтвердите изменение</h1><p class="text-secondary">Проверьте клиента и выбранное действие.</p></div></div>
+    <section class="card form-card"><div class="card-body"><dl class="details-list"><div><dt>Клиент</dt><dd th:text="${client.displayName}"></dd></div><div><dt>Действие</dt><dd th:text="${pending.status == 'ARCHIVED' ? 'Перевести в архив' : 'Восстановить'}"></dd></div><div><dt>Причина</dt><dd th:text="${pending.reason}"></dd></div></dl>
+        <form method="post" th:action="@{/clients/{id}/confirm(id=${client.id})}"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input type="hidden" name="token" th:value="${pending.token}"><div class="action-bar form-actions"><button class="btn btn-primary" type="submit">Подтвердить</button><a class="btn btn-outline-secondary" th:href="@{/clients/{id}(id=${client.id})}">Отмена</a></div></form>
+    </div></section>
+</main></div></body></html>

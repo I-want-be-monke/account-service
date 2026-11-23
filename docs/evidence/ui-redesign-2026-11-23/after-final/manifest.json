@@ -1,0 +1,251 @@
+{
+  "origin": "https://localhost:18450",
+  "capturedAt": "2026-11-23T19:14:59.555Z",
+  "pages": [
+    {
+      "name": "login",
+      "route": "/login",
+      "title": "Вход — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "home-admin",
+      "route": "/",
+      "title": "Рабочий стол — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "users",
+      "route": "/admin/users",
+      "title": "Пользователи — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "user-new",
+      "route": "/admin/users/new",
+      "title": "Новый пользователь — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "audit",
+      "route": "/audit",
+      "title": "Журнал действий — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "home-operator",
+      "route": "/",
+      "title": "Рабочий стол — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "client-list",
+      "route": "/clients",
+      "title": "Клиенты — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "client-card",
+      "route": "/clients/6f573f6c-93a2-43a3-85fe-0db52982fb98",
+      "title": "Карточка клиента — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "account-card",
+      "route": "/accounts/6a2b97ba-35a4-4c22-a784-2110388485f1",
+      "title": "Лицевой счёт — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "client-new",
+      "route": "/clients/new",
+      "title": "Новый клиент — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "client-edit",
+      "route": "/clients/6f573f6c-93a2-43a3-85fe-0db52982fb98/edit",
+      "title": "Редактирование клиента — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "account-new",
+      "route": "/clients/6f573f6c-93a2-43a3-85fe-0db52982fb98/accounts/new",
+      "title": "Открыть счёт — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "account-status",
+      "route": "/accounts/6a2b97ba-35a4-4c22-a784-2110388485f1/status",
+      "title": "Состояние счёта — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "home-accountant",
+      "route": "/",
+      "title": "Рабочий стол — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "history",
+      "route": "/accounts/6a2b97ba-35a4-4c22-a784-2110388485f1/operations",
+      "title": "История операций — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "operation-form",
+      "route": "/accounts/6a2b97ba-35a4-4c22-a784-2110388485f1/operations/new?kind=CHARGE",
+      "title": "Подготовка операции — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "operation-detail",
+      "route": "/operations/d3f9d8c4-2e5d-4605-aa2a-08674db3e069",
+      "title": "Операция — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "correction-form",
+      "route": "/operations/d3f9d8c4-2e5d-4605-aa2a-08674db3e069/corrections/new",
+      "title": "Исправление операции — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "workspace-operations",
+      "route": "/workspace/operations",
+      "title": "Финансовые операции — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "statement",
+      "route": "/accounts/6a2b97ba-35a4-4c22-a784-2110388485f1/statement/result?from=2026-11-23&to=2026-11-23",
+      "title": "Выписка по лицевому счёту — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "home-manager",
+      "route": "/",
+      "title": "Рабочий стол — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "report-parameters",
+      "route": "/reports?type=MOVEMENT",
+      "title": "Финансовые отчёты — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "report-parameters-mobile",
+      "route": "/reports?type=MOVEMENT",
+      "title": "Финансовые отчёты — Лицевые счета",
+      "viewport": {
+        "height": 844,
+        "width": 390
+      }
+    },
+    {
+      "name": "report-result",
+      "route": "/reports/result?type=MOVEMENT&from=2026-11-23&to=2026-11-23&clientId=6f573f6c-93a2-43a3-85fe-0db52982fb98",
+      "title": "Движение по счетам за период — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "home-client",
+      "route": "/",
+      "title": "Рабочий стол — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "own-accounts",
+      "route": "/my/accounts",
+      "title": "Мои лицевые счета — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "name": "own-client",
+      "route": "/me/client",
+      "title": "Моя карточка — Лицевые счета",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    }
+  ],
+  "browserVersion": "157.0.8103.38",
+  "status": "PASS"
+}

@@ -14,8 +14,9 @@ const DATABASE = 'account_service_e11';
 const APP = `${PROJECT}-app-1`;
 const DB = `${PROJECT}-db-1`;
 const browserNames = ['chrome', 'edge', 'firefox'];
+const viewports = [[1920, 1080], [1440, 900], [1366, 768], [768, 1024], [390, 844]];
 const roleLabels = {
-  ADMIN: 'Администратор', OPERATOR: 'Оператор', ACCOUNTANT: 'Бухгалтер-расчетчик',
+  ADMIN: 'Администратор', OPERATOR: 'Оператор', ACCOUNTANT: 'Бухгалтер-расчётчик',
   MANAGER: 'Руководитель', CLIENT: 'Клиент',
 };
 const browserDefaults = {
@@ -33,7 +34,7 @@ const stepNames = [
 function options(args) {
   const result = {};
   const keys = new Set(['browser', 'chrome', 'edge', 'firefox', 'chrome-driver', 'edge-driver', 'firefox-driver',
-    'yandex', 'yandex-driver', 'ca', 'spki', 'output', 'env', 'client']);
+    'yandex', 'yandex-driver', 'ca', 'spki', 'output', 'env', 'client', 'print-only']);
   for (let i = 0; i < args.length; i++) {
     const key = args[i].slice(2);
     if (!args[i].startsWith('--') || !keys.has(key) || !args[i + 1] || Object.hasOwn(result, key)) {
@@ -160,14 +161,21 @@ function outputDirectory(input) {
 
 function disposeChromiumProfile(directory) {
   const root = fs.realpathSync(directory);
+  assert(root.startsWith(fs.realpathSync('.local') + path.sep), 'Disposable profile must remain under .local');
   const profile = path.join(root, 'profile');
   if (!fs.existsSync(profile)) return;
   assert.equal(path.relative(root, fs.realpathSync(profile)), 'profile', 'Unexpected disposable profile target');
   fs.rmSync(profile, { recursive: true, maxRetries: 3, retryDelay: 200 });
 }
 
-async function launchYandex(binary, directory, pin) {
+async function launchYandex(binary, directory, pin, initialZoom) {
   const profile = path.join(directory, 'profile');
+  if (initialZoom !== 1) {
+    fs.mkdirSync(path.join(profile, 'Default'), { recursive: true });
+    fs.writeFileSync(path.join(profile, 'Default', 'Preferences'), JSON.stringify({ partition: {
+      default_zoom_level: { x: Math.log(initialZoom) / Math.log(1.2) },
+    } }));
+  }
   const args = ['--headless=new', '--no-first-run', '--no-default-browser-check', '--disable-background-networking',
     '--enable-automation', '--remote-debugging-address=127.0.0.1', '--remote-debugging-port=0', `--user-data-dir=${profile}`];
   if (pin) args.push(`--ignore-certificate-errors-spki-list=${pin}`);
@@ -247,7 +255,7 @@ async function allowYandexTestCertificate(address, ca, pin, tls) {
   } catch (error) { socket.close(); throw error; }
 }
 
-async function openBrowser(kind, binary, webdriver, directory, pin) {
+async function openBrowser(kind, binary, webdriver, directory, pin, initialZoom = 1) {
   const { Builder } = require('selenium-webdriver');
   const engine = kind === 'yandex' ? 'chrome' : kind;
   const builder = new Builder().forBrowser(engine === 'edge' ? 'MicrosoftEdge' : engine);
@@ -258,20 +266,20 @@ async function openBrowser(kind, binary, webdriver, directory, pin) {
   let yandex;
   if (kind === 'firefox') {
     const firefox = require('selenium-webdriver/firefox');
-    const opts = new firefox.Options().setBinary(binary).addArguments('-headless').setAcceptInsecureCerts(false);
+    const opts = new firefox.Options().setBinary(binary).addArguments('-headless').setAcceptInsecureCerts(false).enableBidi();
     opts.setPreference('browser.download.folderList', 2);
     opts.setPreference('browser.download.dir', downloads);
     opts.setPreference('browser.download.useDownloadDir', true);
     opts.setPreference('browser.helperApps.neverAsk.saveToDisk', 'text/csv,application/csv,application/octet-stream');
     opts.setPreference('browser.download.always_ask_before_handling_new_types', false);
     builder.setFirefoxOptions(opts);
-    if (webdriver) builder.setFirefoxService(new firefox.ServiceBuilder(webdriver));
+    builder.setFirefoxService(new firefox.ServiceBuilder(webdriver || undefined).addArguments('--allow-system-access'));
   } else {
     const chromium = require(`selenium-webdriver/${engine}`);
     const opts = new chromium.Options().setAcceptInsecureCerts(false);
     if (kind === 'yandex') {
       // A fresh Yandex new-tab page can prevent the driver from creating its first tab session.
-      yandex = await launchYandex(binary, directory, pin);
+      yandex = await launchYandex(binary, directory, pin, initialZoom);
       opts.debuggerAddress(yandex.address);
     } else {
       opts.setBinaryPath(binary).addArguments('--headless=new', '--no-first-run', '--no-default-browser-check',
@@ -306,14 +314,15 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
   const { Select } = require('selenium-webdriver/lib/select');
   const { parse } = require('csv-parse/sync');
   const evidence = { browser: kind, started: new Date().toISOString(), mode: 'headless Selenium WebDriver',
-    steps: [], layout: [], fixtures: {} };
+    steps: [], layout: [], navigation: [], fixtures: {} };
   const documentPrefix = `E11-UI-${kind}-${randomUUID().slice(0, 8)}`;
-  const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit' })
+  const clientName = `Синтетический клиент UI-01 ${documentPrefix}`;
+  let today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit' })
     .format(new Date());
   const tomorrow = new Date(`${today}T00:00:00Z`);
   tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
   const nextDate = tomorrow.toISOString().slice(0, 10);
-  let driver, stopBrowser, debugAddress, closeCertificateProbe;
+  let driver, stopBrowser, debugAddress, closeCertificateProbe, firefoxContext;
   let clientId, accountId, accountNumber, chargeId, paymentId;
   const clean = error => {
     let message = String(error?.message || error).split('\n').slice(0, 5).join('\n');
@@ -336,6 +345,71 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
   const css = selector => driver.wait(until.elementLocated(By.css(selector)), 10_000);
   const text = async selector => (await css(selector)).getText();
   const main = async () => text('main');
+  async function money(selector, expected) {
+    const displayed = (await text(selector)).replace(/[\u00a0\u202f]/g, ' ').trim();
+    assert.match(displayed, /^-?\d[\d ]*,\d{2}\s*₽$/, `Human-readable RUB amount at ${selector}`);
+    assert.equal(displayed.replace(/\s|₽/g, '').replace(',', '.'), expected, `Displayed amount at ${selector}`);
+    assert.equal(await (await css(selector)).getAttribute('data-value'), expected, `Raw amount at ${selector}`);
+  }
+  async function viewport(width, height) {
+    if (kind === 'firefox') {
+      firefoxContext ||= await require('selenium-webdriver/bidi/browsingContext')(driver,
+        { browsingContextId: await driver.getWindowHandle() });
+      await firefoxContext.setViewport(width, height);
+    } else {
+      await driver.sendAndGetDevToolsCommand('Emulation.setDeviceMetricsOverride',
+        { width, height, deviceScaleFactor: 1, mobile: false });
+    }
+    const actual = await driver.executeScript('return {width:innerWidth,height:innerHeight};');
+    assert.deepEqual(actual, { width, height }, 'Browser must provide the requested CSS viewport');
+  }
+  async function zoom(value, route) {
+    if (kind === 'firefox') {
+      await driver.setContext('chrome');
+      try { await driver.executeScript('gBrowser.selectedBrowser.fullZoom = arguments[0];', value); }
+      finally { await driver.setContext('content'); }
+    } else {
+      await driver.get('chrome://settings/appearance');
+      await driver.executeAsyncScript('const done=arguments[arguments.length-1];'
+        + 'chrome.settingsPrivate.setDefaultZoom(arguments[0], done);', value);
+      await go(route);
+    }
+  }
+  async function zoomedYandex() {
+    assert(pin, 'Yandex zoom check requires the verified test certificate pin');
+    const cookies = await driver.manage().getCookies();
+    const original = driver;
+    const zoomDirectory = fs.mkdtempSync(path.join(directory, 'zoom-200-'));
+    const browser = await openBrowser('yandex', executable(config.yandex, 'yandex'),
+      executable(config['yandex-driver']), zoomDirectory, pin, 2);
+    let closeProbe;
+    const restore = async () => {
+      driver = original;
+      closeProbe?.();
+      try { await browser.driver.quit(); }
+      finally {
+        browser.stop?.();
+        try { disposeChromiumProfile(zoomDirectory); }
+        catch (error) {
+          (evidence.profileCleanupNotes ||= []).push({ directory: zoomDirectory, message: clean(error) });
+        }
+      }
+    };
+    try {
+      driver = browser.driver;
+      const tls = { origin: BASE, preflight: 'validated CA, hostname and exact leaf SPKI', verifiedEvents: 0, deniedEvents: 0 };
+      closeProbe = await allowYandexTestCertificate(browser.debugAddress, ca, pin, tls);
+      await driver.sendAndGetDevToolsCommand('Emulation.setDeviceMetricsOverride',
+        { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+      await go('/login');
+      for (const cookie of cookies) await driver.manage().addCookie(cookie);
+      evidence.yandexZoom = { method: '200% default zoom in a separate temporary profile', tls };
+      return restore;
+    } catch (error) {
+      await restore();
+      throw error;
+    }
+  }
   async function screenshot(name) {
     fs.writeFileSync(path.join(directory, `${name}.png`), Buffer.from(await driver.takeScreenshot(), 'base64'));
   }
@@ -367,13 +441,36 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
     assert.equal(applied, value, 'Date field rejected the ISO date');
   }
   async function select(name, value) { await new Select(await css(`[name="${name}"]`)).selectByValue(value); }
+  async function chooseClient() {
+    const query = await css('[data-client-query]');
+    assert.equal(await query.getAttribute('role'), 'combobox', 'Client search must expose a combobox');
+    await query.clear();
+    await query.sendKeys(clientName);
+    await driver.wait(async () => {
+      const options = await driver.findElements(By.css('[data-client-results] [role="option"]'));
+      return options.length && (await options[0].getText()).includes(documentPrefix);
+    }, 10_000, 'Client search did not return the newly created named client');
+    await query.sendKeys(Key.ARROW_DOWN, Key.ENTER);
+    await driver.wait(async () => (await css('[data-client-id]')).getAttribute('value').then(id => id === clientId),
+      5000, 'Keyboard selection did not set the client filter');
+    const selectedName = await query.getAttribute('value');
+    assert(selectedName.includes(documentPrefix) && !selectedName.includes(clientId), 'Client picker must show a name');
+  }
   async function click(selector) {
     const element = await css(selector);
     const href = await element.getAttribute('href');
     if (href) assert.equal(new URL(href, BASE).origin, BASE, 'Unexpected link destination');
+    await driver.executeScript('arguments[0].scrollIntoView({block:"center",inline:"nearest",behavior:"instant"});', element);
+    const hit = await driver.executeScript(`const target=arguments[0],rect=target.getBoundingClientRect();
+      const x=Math.max(0,rect.left)+(Math.min(innerWidth,rect.right)-Math.max(0,rect.left))/2;
+      const y=Math.max(0,rect.top)+(Math.min(innerHeight,rect.bottom)-Math.max(0,rect.top))/2;
+      const top=document.elementFromPoint(x,y);
+      return {clickable:!!top && (top===target || target.contains(top)),x,y,width:innerWidth,height:innerHeight,
+        top:top?.tagName,className:top?.className};`, element);
+    assert(hit.clickable, `The visible control is covered by another element: ${JSON.stringify(hit)}`);
     await element.click();
   }
-  async function submit() { await click('main form button[type="submit"]'); }
+  async function submit() { await click('main form button[type="submit"]:not([name="searchClients"]):not([name="clientId"])'); }
   async function expectUrl(match, description) {
     return driver.wait(async () => {
       const url = await current();
@@ -429,6 +526,17 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
       preflight: 'validated CA, hostname and exact leaf SPKI', warning: 'ERR_CERT_AUTHORITY_INVALID' };
   }
   async function login(role) {
+    if (role === 'ADMIN') {
+      for (const [width, height] of viewports) {
+        await viewport(width, height);
+        await go('/login');
+        const measure = await layoutMetrics('login');
+        assert(measure.pageWidth <= measure.width + 3 && measure.outside.length === 0 && measure.collisions === 0,
+          `Login form exceeds ${width}x${height}: ${JSON.stringify(measure)}`);
+        await screenshot(`login-${width}x${height}`);
+      }
+      await viewport(1366, 768);
+    }
     await go('/login');
     const user = await css('#username');
     const pass = await css('#password');
@@ -444,7 +552,8 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
     assert.equal(await active.getTagName(), 'button', 'Tab did not reach the sign-in button');
     await driver.actions().sendKeys(Key.ENTER).perform();
     await expectUrl(url => url.pathname === '/', 'Sign-in did not reach home');
-    assert((await main()).includes(roleLabels[role]), `Role ${role} was not shown`);
+    assert((await text('body')).includes(roleLabels[role]), `Role ${role} was not shown`);
+    if (!config['print-only']) await navigation(role);
   }
   async function denied(route) {
     await go(route);
@@ -460,7 +569,7 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
   }
   async function operation(kindName, amount, suffix) {
     await go(`/accounts/${accountId}/operations/new?kind=${kindName}`);
-    await fill('amount', amount);
+    await fill('amount', amount.replace('.', ','));
     await fill('basis', `Проверка UI-01 ${documentPrefix}`);
     await fill('externalNumber', `${documentPrefix}-${suffix}`);
     if (kindName === 'PAYMENT') await select('paymentMethod', 'MANUAL_TRANSFER');
@@ -470,7 +579,7 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
   async function correction(source, target) {
     await go(`/operations/${source}`);
     await click(`a[href="/operations/${source}/corrections/new"]`);
-    await fill('targetAmount', target);
+    await fill('targetAmount', target.replace('.', ','));
     await fill('reason', `Проверка исправления UI-01 ${documentPrefix}`);
     await fill('basis', `Синтетическая операция ${documentPrefix}`);
     await submit();
@@ -500,6 +609,13 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
       catch { return false; }
     });`);
     assert(cssRule, 'Print stylesheet did not hide controls');
+    assert(await driver.executeScript(`
+      const hidden = [...document.styleSheets].flatMap(sheet => [...sheet.cssRules])
+        .filter(rule => rule.media?.mediaText.includes('print')).flatMap(rule => [...rule.cssRules])
+        .filter(rule => rule.style?.display === 'none').flatMap(rule => rule.selectorText.split(','));
+      return [...document.querySelectorAll('[data-sidebar],.app-topbar,.app-footer')]
+        .every(element => hidden.some(selector => element.closest(selector.trim())));
+    `), 'Print shell elements must be covered by the print hiding rules');
     await driver.executeScript('window.uiPrintCalls = 0; window.print = () => window.uiPrintCalls++;');
     await click('#print-statement');
     assert.equal(await driver.executeScript('return window.uiPrintCalls;'), 1, 'Print button did not call window.print');
@@ -508,6 +624,63 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
     assert(pdf.length > 1000 && pdf.subarray(0, 5).toString() === '%PDF-' && pdf.includes(Buffer.from('%%EOF')),
       'WebDriver did not produce a valid print PDF envelope');
     fs.writeFileSync(path.join(directory, `${name}.pdf`), pdf);
+    const style = await driver.executeAsyncScript(`const done=arguments[arguments.length-1];
+      fetch('/css/print.css', {credentials:'same-origin',cache:'no-store'})
+        .then(response=>{if(!response.ok)throw new Error('Print CSS HTTP '+response.status);return response.arrayBuffer();})
+        .then(bytes=>done({bytes:Array.from(new Uint8Array(bytes))})).catch(error=>done({error:error.message}));`);
+    assert(!style.error && style.bytes.length > 0, 'Unable to record the actually served print stylesheet');
+    (evidence.printArtifacts ||= []).push({ name, cssPath: '/css/print.css',
+      cssSha256: createHash('sha256').update(Buffer.from(style.bytes)).digest('hex'),
+      pdfSha256: createHash('sha256').update(pdf).digest('hex'), pdfBytes: pdf.length });
+  }
+  async function navigation(role) {
+    const sidebar = await css('[data-sidebar]');
+    const forbidden = {
+      ADMIN: [], OPERATOR: ['/admin/users', '/reports', '/audit'], ACCOUNTANT: ['/admin/users', '/audit'],
+      MANAGER: ['/admin/users'], CLIENT: ['/admin/users', '/clients', '/accounts', '/reports', '/audit'],
+    };
+    for (const route of forbidden[role]) {
+      assert.equal((await sidebar.findElements(By.css(`a[href="${route}"]`))).length, 0, `${role} navigation exposes ${route}`);
+    }
+    for (const [width, height] of viewports) {
+      await viewport(width, height);
+      await go('/');
+      const active = await css('[data-sidebar] a[aria-current="page"]');
+      assert.equal(new URL(await active.getAttribute('href')).pathname, '/', 'Sidebar must mark the current home');
+      const measurement = await driver.executeScript('return {width:innerWidth,height:innerHeight,'
+        + 'pageWidth:document.documentElement.scrollWidth};');
+      assert(measurement.pageWidth <= measurement.width + 3, `${role} dashboard exceeds its viewport`);
+      const toggles = await driver.findElements(By.css('[data-nav-toggle]'));
+      const toggle = toggles.length && await toggles[0].isDisplayed() ? toggles[0] : null;
+      if (toggle) {
+        await driver.executeScript('arguments[0].focus();', toggle);
+        await driver.actions().sendKeys(Key.ENTER).perform();
+        await driver.wait(async () => await toggle.getAttribute('aria-expanded') === 'true', 3000, 'Mobile menu did not open');
+        await driver.actions().sendKeys(Key.TAB).perform();
+        assert(await driver.executeScript('return arguments[0].contains(document.activeElement);', await css('[data-sidebar]')),
+          'Tab must enter the opened mobile navigation');
+        if (width === 390) await screenshot(`navigation-${role.toLowerCase()}-mobile-open`);
+        await driver.actions().sendKeys(Key.ESCAPE).perform();
+        await driver.wait(async () => await toggle.getAttribute('aria-expanded') === 'false', 3000, 'Escape did not close the menu');
+        assert(await driver.executeScript('return document.activeElement === arguments[0];', toggle),
+          'Escape must return focus to the menu button');
+      } else {
+        const collapse = await css('[data-sidebar-collapse]');
+        const expandedWidth = (await (await css('[data-sidebar]')).getRect()).width;
+        const before = await collapse.getAttribute('aria-expanded');
+        await collapse.click();
+        await driver.wait(async () => await collapse.getAttribute('aria-expanded') !== before, 3000, 'Sidebar did not collapse');
+        await driver.wait(async () => (await (await css('[data-sidebar]')).getRect()).width < expandedWidth - 50,
+          3000, 'Collapsed sidebar did not release screen space');
+        if (width === 1920) await screenshot(`navigation-${role.toLowerCase()}-desktop-collapsed`);
+        await collapse.click();
+        await driver.wait(async () => Math.abs((await (await css('[data-sidebar]')).getRect()).width - expandedWidth) < 2,
+          3000, 'Sidebar did not return to its expanded size');
+      }
+      evidence.navigation.push({ role, viewport: `${width}x${height}`, mobileMenu: !!toggle, ...measurement });
+      await screenshot(`home-${role.toLowerCase()}-${width}x${height}`);
+    }
+    await viewport(1366, 768);
   }
   async function keyboardTable() {
     const wrapper = await css('main .table-wrap');
@@ -531,11 +704,48 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
       2500, 'Arrow Right did not scroll the focused table', 50);
     return { ...focus, scrollLeft };
   }
-  async function layout(name, route) {
-    for (const [viewport, width] of [['desktop', 1366], ['narrow', 520]]) {
-      await driver.manage().window().setRect({ width, height: 900 });
+  async function layout(name, route, table = true) {
+    for (const [width, height] of viewports) {
+      const size = `${width}x${height}`;
+      await viewport(width, height);
       await go(route);
-      const result = await driver.executeScript(`
+      const result = await layoutMetrics(name);
+      evidence.layout.push({ name, viewport: size, ...result });
+      await screenshot(`${name}-${size}`);
+      if (table && width === 390) evidence.layout.at(-1).keyboard = await keyboardTable();
+    }
+    await viewport(1440, 900);
+    await go(route);
+    const original = await driver.executeScript('return {dpr:devicePixelRatio,width:innerWidth};');
+    let restoreYandex;
+    try {
+      if (kind === 'yandex') { restoreYandex = await zoomedYandex(); await go(route); }
+      else await zoom(2, route);
+      const enlarged = await driver.executeScript('return {dpr:devicePixelRatio,width:innerWidth};');
+      assert(Math.abs(enlarged.dpr / original.dpr - 2) < 0.01 && Math.abs(enlarged.width * 2 - original.width) <= 2,
+        'Browser zoom must actually double pixel ratio and halve the CSS viewport');
+      const result = await layoutMetrics(name);
+      evidence.layout.push({ name, viewport: '200-percent', browserZoom: { original, enlarged }, ...result });
+      await screenshot(`${name}-200-percent`);
+    } finally {
+      if (restoreYandex) await restoreYandex();
+      else if (kind !== 'yandex') await zoom(1, route);
+    }
+    const measurements = evidence.layout.filter(item => item.name === name);
+    for (const item of measurements) {
+      assert(item.pageWidth <= item.width + 3 && item.collisions === 0 && item.outside.length === 0,
+        `${name} ${item.viewport} layout overflow or overlap ${JSON.stringify(item)}`);
+      if (table) {
+        assert(item.primaryWidth >= (name === 'report' ? 150 : 100) && item.overflowingText === 0,
+          `${name} ${item.viewport} has a compressed column or text outside a cell ${JSON.stringify(item)}`);
+        assert(item.wrappers.length > 0 && item.wrappers.every(box => box.content <= box.width + 3
+          || ['auto', 'scroll'].includes(box.overflow)), 'Table overflow is not contained in a scrolling wrapper');
+      }
+    }
+    await viewport(1366, 768);
+  }
+  async function layoutMetrics(name) {
+    return driver.executeScript(`
         const width = window.innerWidth;
         const visible = element => element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden';
         const controls = [...document.querySelectorAll('main a, main button, main input:not([type=hidden]), main select, main textarea')]
@@ -562,21 +772,6 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
           }).length;
         return {width, pageWidth:document.documentElement.scrollWidth, collisions, outside, wrappers, primaryWidth, overflowingText};
       `, name === 'report' ? '.statement-table tbody td.statement-text' : '.statement-table tbody tr[data-operation-id] td:first-child');
-      evidence.layout.push({ name, viewport, ...result });
-      await screenshot(`${name}-${viewport}`);
-      if (viewport === 'narrow') evidence.layout.at(-1).keyboard = await keyboardTable();
-    }
-    const measurements = evidence.layout.filter(item => item.name === name);
-    for (const item of measurements) {
-      assert(item.viewport !== 'narrow' || item.width <= 650, 'Browser did not enter the narrow viewport');
-      assert(item.pageWidth <= item.width + 3 && item.collisions === 0 && item.outside.length === 0,
-        `${name} ${item.viewport} layout overflow or overlap ${JSON.stringify(item)}`);
-      assert(item.primaryWidth >= (name === 'report' ? 150 : 100) && item.overflowingText === 0,
-        `${name} ${item.viewport} has a compressed column or text outside a cell ${JSON.stringify(item)}`);
-      assert(item.wrappers.length > 0 && item.wrappers.every(box => box.content <= box.width + 3
-        || ['auto', 'scroll'].includes(box.overflow)), 'Table overflow is not contained in a scrolling wrapper');
-    }
-    await driver.manage().window().setRect({ width: 1366, height: 900 });
   }
 
   try {
@@ -605,6 +800,33 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
         await yandexTls();
       }
     });
+    if (config['print-only']) {
+      const source = fs.realpathSync(path.resolve(config['print-only']));
+      const local = fs.realpathSync('.local') + path.sep;
+      assert(source.startsWith(local), 'Prior print fixtures must be under .local');
+      const previous = JSON.parse(fs.readFileSync(path.join(source, kind, 'result.json'), 'utf8'));
+      assert.equal(previous.status, 'PASS', 'Read-only printing requires previously passed browser fixtures');
+      assert.equal(previous.browser, kind);
+      for (const id of ['accountId', 'clientId']) {
+        assert(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(previous.fixtures[id]),
+          `Invalid prior ${id}`);
+      }
+      assert(/^\d{4}-\d{2}-\d{2}$/.test(previous.fixtures.today), 'Invalid prior statement date');
+      ({ accountId, clientId, accountNumber, today } = previous.fixtures);
+      evidence.fixtures = { ...previous.fixtures };
+      evidence.mode = 'headless Selenium WebDriver, existing fixtures, read-only print verification';
+      await step('accountant', () => login('ACCOUNTANT'));
+      await step('statement-print', async () => {
+        await go(statement(accountId));
+        await printDocument('statement-print', 'a[href*="/statement/print"]');
+      });
+      await step('report-print', async () => {
+        await go(movement(clientId));
+        await printDocument('report-print', 'a[href*="/reports/print"]');
+      });
+      await logout();
+      return evidence;
+    }
     await step('admin', async () => {
       await login('ADMIN');
       await click('a[href="/admin/users"]');
@@ -612,6 +834,12 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
       assert((await driver.findElements(By.css('table tbody tr'))).length > 0);
       await go('/reports');
       assert.match(await main(), /Финансовые отчёты/);
+      await go('/audit');
+      assert.match(await text('h1'), /Журнал действий/);
+      await screenshot('admin-audit');
+      await click('main a[href^="/audit/"]');
+      assert.match(await main(), /Инициатор|Технические сведения/);
+      await screenshot('admin-audit-detail');
       await logout();
     });
     await step('operator-create', async () => {
@@ -619,7 +847,7 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
       await click('a[href="/clients"]');
       await click('a[href="/clients/new"]');
       await select('clientType', 'PERSON');
-      await fill('displayName', `Синтетический клиент UI-01 ${documentPrefix}`);
+      await fill('displayName', clientName);
       await fill('identifierType', 'DEMO');
       await fill('identifierValue', documentPrefix);
       await submit();
@@ -631,15 +859,24 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
       assert(accountNumber, 'Opened account number was not displayed');
       evidence.fixtures = { clientId, accountId, accountNumber, documentPrefix, today };
       await screenshot('operator-account');
+      await go(`/clients/${clientId}`);
+      assert.equal(await text(`main table a[href="/accounts/${accountId}"]`), accountNumber,
+        'Client card must display the newly opened real account');
+      await screenshot('operator-client-with-account');
       await logout();
     });
     await step('accountant', () => login('ACCOUNTANT'));
     await step('finance-form-error', async () => {
+      await layout('financial-form', `/accounts/${accountId}/operations/new?kind=CHARGE`, false);
       await go(`/accounts/${accountId}/operations/new?kind=CHARGE`);
       await fill('amount', '0');
       await fill('basis', `Ошибка UI-01 ${documentPrefix}`);
       await submit();
-      assert.match(await text('.alert'), /сумм|предел/i);
+      assert.match(await text('#amount-error'), /сумм|предел/i);
+      const invalidAmount = await css('[name="amount"]');
+      assert.equal(await invalidAmount.getAttribute('aria-invalid'), 'true', 'Server must identify the invalid amount');
+      assert.equal(await invalidAmount.getAttribute('value'), '0', 'Invalid form must preserve the entered amount');
+      assert(await (await css('.alert')).isDisplayed(), 'Form error summary must remain visible');
       await screenshot('finance-error');
     });
     await step('finance-post', async () => {
@@ -651,13 +888,13 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
       const chargeCorrection = await correction(chargeId, '900.00');
       const paymentCorrection = await correction(paymentId, '350.00');
       Object.assign(evidence.fixtures, { chargeCorrection, paymentCorrection });
-      assert.match(await main(), /550\.00/);
+      assert.match(await main(), /550,00\s*₽/);
       await screenshot('correction');
     });
     await step('history', async () => {
       await go(`/accounts/${accountId}/operations`);
-      assert.match(await main(), /История счета/);
-      assert.match(await main(), /550\.00/);
+      assert.match(await main(), /История сч[её]та/);
+      assert.match(await main(), /550,00\s*₽/);
       for (const id of [chargeId, paymentId, evidence.fixtures.chargeCorrection, evidence.fixtures.paymentCorrection]) {
         assert((await driver.findElements(By.css(`a[href="/operations/${id}"]`))).length > 0, `History misses operation ${id}`);
       }
@@ -668,8 +905,8 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
       await date('from', today);
       await date('to', today);
       await submit();
-      assert.equal(await text('#opening-balance'), '0.00');
-      assert.equal(await text('#closing-balance'), '550.00');
+      await money('#opening-balance', '0.00');
+      await money('#closing-balance', '550.00');
       assert.equal(await text('#operation-count'), '4');
     });
     await step('statement-error', async () => {
@@ -694,6 +931,7 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
     await logout();
     await step('manager-report', async () => {
       await login('MANAGER');
+      await layout('report-parameters', '/reports?type=MOVEMENT', false);
       for (const [type, calendar, period, values] of [
         ['CHARGES', 'month', today.slice(0, 7), { netCharges: '900.00' }],
         ['PAYMENTS', 'month', today.slice(0, 7), { netPayments: '350.00' }],
@@ -701,30 +939,61 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
       ]) {
         await go(`/reports?type=${type}`);
         await date(calendar, period);
-        await fill('clientId', clientId);
+        await chooseClient();
+        await screenshot(`report-parameters-${type.toLowerCase()}`);
         await submit();
+        assert.equal((await current()).searchParams.get('clientId'), clientId, 'Selected client must reach the report service');
         for (const [column, expected] of Object.entries(values)) {
-          assert.equal(await text(`[data-total-key="${column}"]`), expected, `${type} ${column}`);
+          await money(`[data-total-key="${column}"]`, expected);
         }
+        await screenshot(`report-result-${type.toLowerCase()}`);
       }
       await go('/reports?type=MOVEMENT');
       await date('from', today);
       await date('to', today);
-      await fill('clientId', clientId);
+      await chooseClient();
       await submit();
-      assert.equal(await text('[data-total-key="closingBalance"]'), '550.00');
+      await money('[data-total-key="closingBalance"]', '550.00');
       assert.equal(await text(`a[href="/accounts/${accountId}"]`), accountNumber);
+      for (const selector of ['a[href*="/reports.csv"]', 'a[href*="/reports/print"]']) {
+        const target = new URL(await (await css(selector)).getAttribute('href'));
+        assert.equal(target.searchParams.get('clientId'), clientId, 'Export must retain the selected named client');
+        assert.equal(target.searchParams.get('from'), today);
+        assert.equal(target.searchParams.get('to'), today);
+      }
+      await go('/reports?type=MOVEMENT');
+      await chooseClient();
+      await click('[data-client-clear]');
+      assert.equal(await (await css('[data-client-id]')).getAttribute('value'), '');
+      assert.equal(await (await css('[data-client-query]')).getAttribute('value'), '');
+      await date('from', today);
+      await date('to', today);
+      await fill('size', '1');
+      await submit();
+      assert(!(await current()).searchParams.get('clientId'), 'Cleared filter must include all permitted clients');
+      const totals = await driver.executeScript('return Object.fromEntries([...document.querySelectorAll("[data-total-key]")]'
+        + '.map(el=>[el.dataset.totalKey,el.dataset.value]));');
+      const largerPage = await current();
+      largerPage.searchParams.set('size', '2');
+      await go(largerPage.pathname + largerPage.search);
+      const repeated = await driver.executeScript('return Object.fromEntries([...document.querySelectorAll("[data-total-key]")]'
+        + '.map(el=>[el.dataset.totalKey,el.dataset.value]));');
+      assert(Object.keys(totals).length === 8 && Object.values(totals).every(value => /^-?\d+\.\d{2}$/.test(value)),
+        'Report totals must retain exact raw amounts alongside localized values');
+      assert.deepEqual(repeated, totals, 'Full report totals must be independent of page size');
     });
     await step('report-empty', async () => {
       await go(movement(randomUUID()));
-      assert.match(await main(), /нет счетов/);
-      assert.equal(await text('[data-total-key="closingBalance"]'), '0.00');
+      assert.match(await main(), /нет счетов/i);
+      await money('[data-total-key="closingBalance"]', '0.00');
       await screenshot('report-empty');
     });
     await step('report-csv', async () => {
       await go(movement(clientId));
       const rows = await download('a[href*="/reports.csv"]', 'report-');
       assert.equal(rows.find(row => row.record_type === 'DETAIL')?.account_id, accountId);
+      assert(rows.filter(row => row.record_type === 'DETAIL').every(row => row.client_id === clientId),
+        'Downloaded filtered CSV includes an unexpected client');
       assert.equal(rows.find(row => row.record_type === 'TOTAL')?.closingBalance, '550.00');
     }, false);
     await step('report-print', async () => {
@@ -769,7 +1038,8 @@ async function runBrowser(kind, config, settings, directory, ca, pin) {
       try { disposeChromiumProfile(directory); }
       catch (error) { evidence.profileCleanup = clean(error); }
     }
-    for (const name of stepNames) if (!evidence.steps.some(item => item.name === name)) evidence.steps.push({ name, status: 'NOT RUN' });
+    const expectedSteps = config['print-only'] ? ['start', 'accountant', 'statement-print', 'report-print'] : stepNames;
+    for (const name of expectedSteps) if (!evidence.steps.some(item => item.name === name)) evidence.steps.push({ name, status: 'NOT RUN' });
     evidence.finished = new Date().toISOString();
     evidence.status = evidence.steps.every(item => item.status === 'PASS') ? 'PASS' : 'FAIL';
     fs.writeFileSync(path.join(directory, 'result.json'), JSON.stringify(evidence, null, 2));
@@ -783,6 +1053,7 @@ async function main() {
     console.log('  [--chrome-driver <exe>] [--edge-driver <exe>] [--firefox-driver <exe>] [--ca <PEM>] [--spki <file or SHA-256 base64>]');
     console.log('  [--yandex <exe>] [--yandex-driver <official exe>]');
     console.log('  [--env .local/e11/stand.env] [--client e11-client-001] [--output .local/e11-verification/ui-unique]');
+    console.log('  [--print-only <previous passing output directory under .local>]');
     return;
   }
   const config = options(process.argv.slice(2));

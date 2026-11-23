@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <span th:fragment="status(value)" class="status-pill" th:attr="data-status=${value}"
+          th:text="${@ui.status(value)}"></span>
+
+    <p th:fragment="alert(kind, text)" th:if="${text != null and !#strings.isEmpty(text)}"
+       class="alert" th:classappend="${'alert-' + kind}" role="alert" th:text="${text}"></p>
+
+    <a th:fragment="button(href, label, variant)" class="btn" th:classappend="${'btn-' + variant}"
+       th:href="${href}" th:text="${label}"></a>
+
+    <nav th:fragment="pager(previous, next, page, totalPages)" class="pager pagination-bar"
+         aria-label="Страницы таблицы">
+        <a th:if="${previous != null}" class="btn btn-outline-secondary btn-sm" th:href="${previous}">Назад</a>
+        <span th:if="${page == 0 or page < totalPages}" class="text-secondary"
+              th:text="|Страница ${page + 1} из ${totalPages == 0 ? 1 : totalPages}|"></span>
+        <a th:if="${next != null}" class="btn btn-outline-secondary btn-sm" th:href="${next}">Далее</a>
+    </nav>
+
+    <div th:fragment="field(id, name, label, type, value, required, hint)" class="form-field">
+        <label class="form-label" th:for="${id}" th:text="${label}"></label>
+        <input class="form-control" th:id="${id}" th:name="${name}" th:type="${type}"
+               th:value="${value}" th:required="${required}"
+               th:attr="aria-describedby=${hint == null ? null : id + '-hint'}">
+        <p th:if="${hint != null}" class="form-hint" th:id="${id + '-hint'}" th:text="${hint}"></p>
+    </div>
+    <section th:fragment="accountPreview(accounts, allUrl, openUrl)" class="card card-table">
+        <div class="card-header"><h2 class="card-title">Лицевые счета клиента</h2><span class="text-secondary" th:text="|Всего счетов ${accounts.totalElements}|"></span></div>
+        <div class="table-responsive" tabindex="0" role="region" aria-label="Лицевые счета клиента">
+            <table class="table table-vcenter"><thead><tr><th scope="col">Номер счёта</th><th scope="col">Статус</th><th scope="col">Дата открытия</th><th scope="col" class="money">Сальдо</th><th scope="col">Действие</th></tr></thead><tbody>
+                <tr th:each="a, position : ${accounts.content}" th:if="${position.index < 5}">
+                    <td><a class="account-number" th:href="@{/accounts/{id}(id=${a.id})}" th:text="${a.accountNumber}"></a></td>
+                    <td><span th:replace="~{fragments/ui :: status(${a.status})}"></span></td>
+                    <td th:text="${@ui.date(a.openedOn)}"></td><td class="money" th:text="${@ui.money(a.currentBalance)}"></td>
+                    <td><a class="btn btn-outline-secondary btn-sm" th:href="@{/accounts/{id}(id=${a.id})}">Открыть</a></td>
+                </tr>
+                <tr th:if="${accounts.empty}"><td colspan="5"><div class="empty-state"><h3>Счета пока не открыты</h3><p>Открытые лицевые счета появятся в этой карточке.</p><a th:if="${openUrl != null}" class="btn btn-primary" th:href="${openUrl}">Открыть счет</a></div></td></tr>
+            </tbody></table>
+        </div>
+        <div class="card-footer action-bar"><span class="text-secondary" th:if="${accounts.totalElements > 5}">Показаны первые 5 счетов.</span><a class="btn btn-outline-secondary btn-sm" th:href="${allUrl}">Все счета клиента</a></div>
+    </section>
+</body>
+</html>

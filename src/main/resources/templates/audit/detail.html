@@ -1,15 +1,7 @@
-<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>Событие журнала</title>
-<link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
-<nav><a th:href="@{/audit}">Журнал действий</a></nav><h1 th:text="|Событие № ${event.id}|"></h1>
-<dl><dt>Время UTC</dt><dd th:text="${event.occurredAt}"></dd><dt>Инициатор</dt><dd th:text="${event.actorLogin ?: 'Анонимно'}"></dd>
-<dt>Категория</dt><dd th:text="${labels.get(event.category) ?: event.category}"></dd>
-<dt>Действие</dt><dd th:text="${labels.get(event.action) ?: event.action}"></dd>
-<dt>Объект</dt><dd th:text="|${event.objectType ?: '—'} ${event.objectId ?: ''}|"></dd>
-<dt>Результат</dt><dd th:text="${labels.get(event.result) ?: event.result}"></dd>
-<dt>Код причины</dt><dd th:text="${event.reasonCode ?: 'Нет'}"></dd>
-<dt>ID запроса</dt><dd th:text="${event.requestId}"></dd></dl>
-<h2>Изменения</h2><p>До:</p><pre th:text="${event.beforeData ?: 'Нет'}"></pre>
-<p>После:</p><pre th:text="${event.afterData ?: 'Нет'}"></pre>
-<p>Дополнительные сведения:</p><pre th:text="${event.details ?: 'Нет'}"></pre>
-</main></body></html>
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head th:replace="~{fragments/layout :: head('Событие журнала', false)}"></head><body><div th:replace="~{fragments/layout :: shell('Событие журнала', 'audit', ~{::main})}"><main id="main-content" class="page-content">
+<header class="page-heading"><div><p class="eyebrow">Журнал действий</p><h1 th:text="|Событие № ${event.id}|"></h1><p th:text="${labels.get(event.action) ?: event.action}"></p></div><a class="btn btn-outline-secondary" th:href="@{/audit}">К журналу</a></header>
+<section class="card"><div class="card-header"><h2 class="card-title">Сведения о событии</h2><span class="status-pill" th:attr="data-status=${event.result}" th:text="${labels.get(event.result) ?: @ui.status(event.result)}"></span></div><div class="card-body"><dl class="details-list">
+<div><dt>Дата и время, МСК</dt><dd th:text="${@ui.date(event.occurredAt)}"></dd></div><div><dt>Инициатор</dt><dd th:text="${event.actorLogin ?: 'Анонимно'}"></dd></div><div><dt>Категория</dt><dd th:text="${labels.get(event.category) ?: event.category}"></dd></div><div><dt>Объект</dt><dd th:text="${event.objectType == null ? '—' : (labels.get(event.objectType) ?: event.objectType)}"></dd></div></dl>
+<details class="technical-details"><summary>Технические сведения</summary><dl class="details-list"><div><dt>ID объекта</dt><dd><code th:text="${event.objectId ?: '—'}"></code></dd></div><div><dt>Код причины</dt><dd th:text="${event.reasonCode ?: 'Нет'}"></dd></div><div><dt>ID запроса</dt><dd><code th:text="${event.requestId}"></code></dd></div></dl></details></div></section>
+<section class="card"><div class="card-header"><h2 class="card-title">Изменения</h2></div><div class="card-body"><div class="form-grid"><div><h3>До изменения</h3><pre th:text="${event.beforeData ?: 'Нет данных'}"></pre></div><div><h3>После изменения</h3><pre th:text="${event.afterData ?: 'Нет данных'}"></pre></div></div><details><summary>Дополнительные сведения</summary><pre th:text="${event.details ?: 'Нет данных'}"></pre></details></div></section>
+</main></div></body></html>

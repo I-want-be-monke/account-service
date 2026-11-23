@@ -66,6 +66,7 @@ public class OperationController {
    denial(actor,request,"OPERATION_PREPARE_DENIED",id,e);
    response.setStatus(e.status().value());
    model.addAttribute("formError",e.getMessage());model.addAttribute("account",accounts.get(id));
+   model.addAttribute("fieldErrorName",e.fieldName());
    model.addAttribute("edit",false);return "operations/form";
   }
  }
@@ -77,6 +78,7 @@ public class OperationController {
   model.addAttribute("account",accounts.get(op.accountId()));
   model.addAttribute("isAccountant",actor.role().equals("ACCOUNTANT"));
   model.addAttribute("corrections",corrections.postedFor(id));
+  if(op.correctsOperationId()!=null)model.addAttribute("sourceOperation",history.detail(op.correctsOperationId()));
   return "operations/detail";
  }
  @GetMapping("/operations/{id}/edit")
@@ -99,6 +101,7 @@ public class OperationController {
    denial(actor,request,"OPERATION_EDIT_DENIED",id,e);
    response.setStatus(e.status().value());
    model.addAttribute("formError",e.getMessage());
+   model.addAttribute("fieldErrorName",e.fieldName());
    model.addAttribute("account",accounts.get(operations.get(id).accountId()));
    model.addAttribute("edit",true);model.addAttribute("operationId",id);
    return "operations/form";
@@ -123,6 +126,7 @@ public class OperationController {
    denial(actor,request,"OPERATION_CORRECTION_PREPARE_DENIED",id,e);
    response.setStatus(e.status().value());
    model.addAttribute("formError",e.getMessage());
+   model.addAttribute("fieldErrorName",e.fieldName());
    var source=corrections.source(id);
    model.addAttribute("source",source);model.addAttribute("account",accounts.get(source.accountId()));
    model.addAttribute("edit",false);return "operations/correction";
@@ -153,7 +157,8 @@ public class OperationController {
    model.addAttribute("source",corrections.source(draft.correctsOperationId()));
    model.addAttribute("account",accounts.get(draft.accountId()));
    model.addAttribute("edit",true);model.addAttribute("operationId",id);
-   model.addAttribute("formError",e.getMessage());return "operations/correction";
+   model.addAttribute("formError",e.getMessage());model.addAttribute("fieldErrorName",e.fieldName());
+   return "operations/correction";
   }
  }
  @GetMapping("/operations/{id}/discard")
@@ -188,6 +193,7 @@ public class OperationController {
   var pending=confirmation.prepare(session,actor.id(),id,"POST",op.version(),fingerprint);
   model.addAttribute("operation",op);model.addAttribute("account",accounts.get(op.accountId()));
   model.addAttribute("pending",pending);
+  if(op.correctsOperationId()!=null)model.addAttribute("sourceOperation",history.detail(op.correctsOperationId()));
   return "operations/confirm";
  }
  @PostMapping("/operations/{id}/confirm")

@@ -1,0 +1,60 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "source": ".local/e11-continuation/browsers/firefox/core/distribution/policies.json",
+      "sha256": "63D82B046FE0A0DF54C73EC18F29A30138C56EA38474B70CBF4065F4506BD48C",
+      "matches": true
+    },
+    {
+      "source": ".local/e11/stand.env",
+      "sha256": "281E4428DE154EE7A3E6A53BFBB51C82FC43FBF40E188BBED9EAE3AD0BDDA72B",
+      "matches": true
+    },
+    {
+      "source": ".local\\e11-continuation\\ui-tls\\ca.pem",
+      "sha256": "3A6DFC560E62CCD5BDD6C6DAA9F1BAA039529B77AA29A75CB94A3C4E9B83FC97",
+      "matches": true
+    },
+    {
+      "source": ".local\\e11-continuation\\ui-tls\\ca.srl",
+      "sha256": "736C65F01F311571039F0CCF7E041F60DC88D7D677635051371FD56319D8C3F1",
+      "matches": true
+    },
+    {
+      "source": ".local\\e11-continuation\\ui-tls\\server-public.der",
+      "sha256": "352CE72A8E8121C0E7FA7163E4E2934485CFD87C6CB80947C6411CF0AE705DEC",
+      "matches": true
+    },
+    {
+      "source": ".local\\e11-continuation\\ui-tls\\server-public.pem",
+      "sha256": "4DD6D6736EFD4B631F0DD13810BC75FFD1F49AF79F9BE4A0DC7095179ECB17A5",
+      "matches": true
+    },
+    {
+      "source": ".local\\e11-continuation\\ui-tls\\server.csr",
+      "sha256": "4D94A50FC34008D0406EFEA6B297E0F3BAA4B40F52207F22EA3D59F1BA70B0EC",
+      "matches": true
+    },
+    {
+      "source": ".local\\e11-continuation\\ui-tls\\server.ext",
+      "sha256": "0A445437D0C8B8CFEEC429B4EB799893F45033CCDF00016D0AD58BD14CDB3586",
+      "matches": true
+    },
+    {
+      "source": ".local\\e11-continuation\\ui-tls\\server.p12",
+      "sha256": "3436C0785AC3C5B90C614E5038335E14AE8179DB080EC214D088E70F53297BCF",
+      "matches": true
+    },
+    {
+      "source": ".local\\e11-continuation\\ui-tls\\server.pem",
+      "sha256": "689FFC9125B5A70818648BC8D7AC1452942DC155288051855569020DF4B6F06F",
+      "matches": true
+    },
+    {
+      "source": ".local\\e11-continuation\\ui-tls\\spki.txt",
+      "sha256": "332E5013D59E2FA4189996118879F8C37C55F019AD7EB2567AB3D2C5CB17CD26",
+      "matches": true
+    }
+  ]
+}

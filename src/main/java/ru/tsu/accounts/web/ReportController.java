@@ -7,6 +7,7 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.ContentDisposition;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.util.UriComponentsBuilder;
 import ru.tsu.accounts.audit.RequestIdFilter;
+import ru.tsu.accounts.client.ClientService;
 import ru.tsu.accounts.identity.UserCommandException;
 import ru.tsu.accounts.report.ReportAuditService;
 import ru.tsu.accounts.report.ReportExportService;
@@ -32,11 +34,14 @@ public class ReportController {
     private final ReportService reports;
     private final ReportExportService export;
     private final ReportAuditService audit;
+    private final ClientService clients;
 
-    public ReportController(ReportService reports, ReportExportService export, ReportAuditService audit) {
+    public ReportController(ReportService reports, ReportExportService export, ReportAuditService audit,
+                            ClientService clients) {
         this.reports = reports;
         this.export = export;
         this.audit = audit;
+        this.clients = clients;
     }
 
     @GetMapping("/reports")
@@ -49,8 +54,23 @@ public class ReportController {
     public String result(@RequestParam MultiValueMap<String, String> parameters, HttpServletRequest request,
                          HttpServletResponse response, Model model) {
         ReportQuery query;
+        String selectedClientName;
         try {
-            query = query(parameters);
+            var values = ReportWebParameters.singleValues(parameters);
+            String clientQuery = values.remove("clientQuery");
+            values.remove("searchClients");
+            if (clientQuery != null && clientQuery.isBlank()) values.remove("clientId");
+            if (clientQuery != null && !clientQuery.isBlank()
+                && values.getOrDefault("clientId", "").isBlank()) {
+                throw new UserCommandException(HttpStatus.BAD_REQUEST, "REPORT_VALIDATION",
+                    "Выберите клиента из результатов поиска или очистите поле, чтобы включить всех клиентов.");
+            }
+            query = ReportQuery.parse(values.remove("type"), values);
+            selectedClientName = clientName(query.clientId());
+            if (clientQuery != null && !clientQuery.isBlank() && !clientQuery.strip().equals(selectedClientName)) {
+                throw new UserCommandException(HttpStatus.BAD_REQUEST, "REPORT_VALIDATION",
+                    "Имя в поиске изменилось. Выберите клиента заново из результатов поиска.");
+            }
         } catch (UserCommandException ex) {
             if (ex.status() != HttpStatus.BAD_REQUEST || !"REPORT_VALIDATION".equals(ex.reasonCode())) {
                 throw ex;
@@ -66,6 +86,7 @@ public class ReportController {
         model.addAttribute("period", ReportWebParameters.filters(query));
         model.addAttribute("totalPages", pages);
         model.addAttribute("printView", print);
+        model.addAttribute("clientName", selectedClientName);
         model.addAttribute("editUrl", link(request, "/reports", query, null));
         model.addAttribute("printUrl", link(request, "/reports/print", query, query.page()));
         model.addAttribute("resultUrl", link(request, "/reports/result", query, query.page()));
@@ -103,7 +124,7 @@ public class ReportController {
         return ReportQuery.parse(values.remove("type"), values);
     }
 
-    private static String form(Map<String, String> parameters, Model model, HttpServletResponse response,
+    private String form(Map<String, String> parameters, Model model, HttpServletResponse response,
                                String error) {
         ReportType type = ReportType.CHARGES;
         String rawType = parameters.get("type");
@@ -122,6 +143,30 @@ public class ReportController {
         model.addAttribute("from", parameters.getOrDefault("from", today.withDayOfMonth(1).toString()));
         model.addAttribute("to", parameters.getOrDefault("to", today.toString()));
         model.addAttribute("clientId", parameters.getOrDefault("clientId", ""));
+        String selectedName = null;
+        try {
+            String id = parameters.getOrDefault("clientId", "");
+            if (!id.isBlank()) selectedName = clientName(UUID.fromString(id));
+        } catch (IllegalArgumentException ex) {
+            if (error == null) error = "Выберите клиента из результатов поиска.";
+        }
+        String clientQuery = parameters.getOrDefault("clientQuery", "");
+        model.addAttribute("clientName", selectedName);
+        model.addAttribute("clientQuery", clientQuery.isBlank() && selectedName != null ? selectedName : clientQuery);
+        if ("1".equals(parameters.get("searchClients"))) {
+            if (clientQuery.isBlank()) {
+                model.addAttribute("clientSearchMessage", "Введите имя клиента или название организации.");
+            } else {
+                try {
+                    var matches = clients.search(clientQuery, "", "", "", 0);
+                    model.addAttribute("clientMatches", matches.getContent());
+                    model.addAttribute("moreClientMatches", matches.hasNext());
+                } catch (UserCommandException ex) {
+                    if (ex.status() != HttpStatus.BAD_REQUEST) throw ex;
+                    if (error == null) error = ex.getMessage();
+                }
+            }
+        }
         model.addAttribute("status", parameters.getOrDefault("status", "").strip().toUpperCase(Locale.ROOT));
         model.addAttribute("size", parameters.getOrDefault("size", "20"));
         if (error != null) {
@@ -130,6 +175,15 @@ public class ReportController {
         }
         noStore(response);
         return "reports/parameters";
+    }
+
+    private String clientName(UUID id) {
+        if (id == null) return null;
+        try { return clients.get(id).displayName(); }
+        catch (UserCommandException ex) {
+            if (ex.status() != HttpStatus.NOT_FOUND || !"CLIENT_NOT_FOUND".equals(ex.reasonCode())) throw ex;
+            return "Клиент не найден";
+        }
     }
 
     private static String link(HttpServletRequest request, String path, ReportQuery query, Integer page) {

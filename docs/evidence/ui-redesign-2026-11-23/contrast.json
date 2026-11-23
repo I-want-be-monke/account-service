@@ -1,0 +1,72 @@
+[
+  {
+    "label": "body",
+    "foreground": "#172033",
+    "background": "#f5f7fb",
+    "ratio": 15.17,
+    "minimum": 4.5
+  },
+  {
+    "label": "secondary",
+    "foreground": "#52647a",
+    "background": "#ffffff",
+    "ratio": 6.06,
+    "minimum": 4.5
+  },
+  {
+    "label": "placeholder",
+    "foreground": "#68788c",
+    "background": "#ffffff",
+    "ratio": 4.51,
+    "minimum": 4.5
+  },
+  {
+    "label": "primary",
+    "foreground": "#ffffff",
+    "background": "#1d4ed8",
+    "ratio": 6.7,
+    "minimum": 4.5
+  },
+  {
+    "label": "success",
+    "foreground": "#12613e",
+    "background": "#e8f6ed",
+    "ratio": 6.71,
+    "minimum": 4.5
+  },
+  {
+    "label": "warning",
+    "foreground": "#86500a",
+    "background": "#fff4dc",
+    "ratio": 6.07,
+    "minimum": 4.5
+  },
+  {
+    "label": "danger",
+    "foreground": "#a52030",
+    "background": "#ffedf0",
+    "ratio": 6.54,
+    "minimum": 4.5
+  },
+  {
+    "label": "navigation",
+    "foreground": "#d6e0ee",
+    "background": "#11243c",
+    "ratio": 11.75,
+    "minimum": 4.5
+  },
+  {
+    "label": "field border",
+    "foreground": "#7f8fa5",
+    "background": "#ffffff",
+    "ratio": 3.29,
+    "minimum": 3
+  },
+  {
+    "label": "focus",
+    "foreground": "#2563eb",
+    "background": "#ffffff",
+    "ratio": 5.17,
+    "minimum": 3
+  }
+]

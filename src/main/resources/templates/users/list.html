@@ -1,22 +1,18 @@
-<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>Пользователи</title>
-<link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
-<nav><a th:href="@{/}">Главная</a> · <a th:href="@{/audit}">Журнал</a></nav>
-<h1>Пользователи</h1>
-<p class="notice" th:if="${param.created}">Пользователь создан.</p>
-<p class="notice" th:if="${param.updated}">Изменения сохранены.</p>
-<p><a class="button-link" th:href="@{/admin/users/new}">Создать пользователя</a></p>
-<form method="get" th:action="@{/admin/users}" class="filters">
-<label>Логин <input name="login" th:value="${login}" maxlength="100"></label>
-<label>Роль <select name="role"><option value="">Все</option><option th:each="r : ${roles}" th:value="${r.code}" th:text="${r.displayName}" th:selected="${role == r.code}"></option></select></label>
-<label>Статус <select name="status"><option value="">Все</option><option value="ACTIVE" th:selected="${status == 'ACTIVE'}">Активен</option><option value="BLOCKED" th:selected="${status == 'BLOCKED'}">Заблокирован</option></select></label>
-<button type="submit">Найти</button></form>
-<div class="table-wrap"><table><thead><tr><th>Логин</th><th>Имя</th><th>Роль</th><th>Статус</th><th>Действие</th></tr></thead>
-<tbody><tr th:each="u : ${users.content}"><td th:text="${u.login}"></td><td th:text="${u.fullName}"></td>
-<td th:text="${u.roleName}"></td><td th:text="${u.status == 'ACTIVE' ? 'Активен' : 'Заблокирован'}"></td>
-<td><a th:href="@{/admin/users/{id}/edit(id=${u.id})}">Открыть</a></td></tr>
-<tr th:if="${users.empty}"><td colspan="5">Пользователи не найдены.</td></tr></tbody></table></div>
-<div class="pager"><a th:if="${users.hasPrevious()}" th:href="@{/admin/users(login=${login},role=${role},status=${status},page=${users.number - 1})}">Назад</a>
-<span th:text="|Страница ${users.number + 1} из ${users.totalPages == 0 ? 1 : users.totalPages}|"></span>
-<a th:if="${users.hasNext()}" th:href="@{/admin/users(login=${login},role=${role},status=${status},page=${users.number + 1})}">Далее</a></div>
-</main></body></html>
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Пользователи', false)}"></head>
+<body><div th:replace="~{fragments/layout :: shell('Пользователи', 'users', ~{::main})}"><main id="main-content" class="page-content">
+
+    <div class="page-heading"><div><h1>Пользователи</h1><p class="text-secondary">Учётные записи, роли и доступ к системе.</p></div><a class="btn btn-primary" th:href="@{/admin/users/new}">Создать пользователя</a></div>
+    <div class="alert alert-success" role="status" th:if="${param.created}">Пользователь создан.</div><div class="alert alert-success" role="status" th:if="${param.updated}">Изменения сохранены.</div>
+    <section class="card"><div class="card-body"><form method="get" th:action="@{/admin/users}" class="filter-grid">
+        <div class="form-field"><label class="form-label" for="login">Логин</label><input class="form-control" id="login" name="login" th:value="${login}" maxlength="100" placeholder="Найти пользователя"></div>
+        <div class="form-field"><label class="form-label" for="role">Роль</label><select class="form-select" id="role" name="role"><option value="">Все роли</option><option th:each="r : ${roles}" th:value="${r.code}" th:text="${r.displayName}" th:selected="${role == r.code}"></option></select></div>
+        <div class="form-field"><label class="form-label" for="status">Статус</label><select class="form-select" id="status" name="status"><option value="">Все статусы</option><option value="ACTIVE" th:selected="${status == 'ACTIVE'}">Активен</option><option value="BLOCKED" th:selected="${status == 'BLOCKED'}">Заблокирован</option></select></div>
+        <div class="action-bar filter-actions"><button class="btn btn-primary" type="submit">Найти</button><a class="btn btn-outline-secondary" th:href="@{/admin/users}">Сбросить</a></div>
+    </form></div></section>
+    <section class="card card-table"><div class="card-header"><h2 class="card-title">Учётные записи</h2><span class="text-secondary" th:text="|Найдено ${users.totalElements}|"></span></div><div class="table-responsive" tabindex="0" role="region" aria-label="Учётные записи"><table class="table table-vcenter"><thead><tr><th scope="col">Логин</th><th scope="col">Имя</th><th scope="col">Роль</th><th scope="col">Статус</th><th scope="col">Действие</th></tr></thead><tbody>
+        <tr th:each="u : ${users.content}"><td><a class="fw-semibold" th:href="@{/admin/users/{id}/edit(id=${u.id})}" th:text="${u.login}"></a></td><td th:text="${u.fullName}"></td><td th:text="${u.roleName}"></td><td><span class="status-pill" th:attr="data-status=${u.status}" th:text="${@ui.status(u.status)}"></span></td><td><a class="btn btn-outline-secondary btn-sm" th:href="@{/admin/users/{id}/edit(id=${u.id})}">Открыть</a></td></tr>
+        <tr th:if="${users.empty}"><td colspan="5"><div class="empty-state"><h3>Пользователи не найдены</h3><p>Измените логин, роль или статус в поиске.</p><a class="btn btn-outline-secondary" th:href="@{/admin/users}">Сбросить фильтры</a></div></td></tr>
+    </tbody></table></div><nav class="card-footer pagination-bar" aria-label="Страницы пользователей"><a class="btn btn-outline-secondary btn-sm" th:if="${users.hasPrevious()}" th:href="@{/admin/users(login=${login},role=${role},status=${status},page=${users.number - 1})}">Назад</a><span class="text-secondary" th:text="|Страница ${users.number + 1} из ${users.totalPages == 0 ? 1 : users.totalPages}|"></span><a class="btn btn-outline-secondary btn-sm" th:if="${users.hasNext()}" th:href="@{/admin/users(login=${login},role=${role},status=${status},page=${users.number + 1})}">Далее</a></nav></section>
+</main></div></body></html>

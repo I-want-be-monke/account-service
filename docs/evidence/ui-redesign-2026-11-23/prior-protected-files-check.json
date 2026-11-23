@@ -1,0 +1,44 @@
+{
+  "lab-hashes-before.json": [
+    {
+      "path": "C:\\vyz\\incheneria\\ЛР3_Джигун_СГ_отредактированная.docx",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\vyz\\incheneria\\ЛР4_Джигун_СГ_дубликат.docx",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\vyz\\incheneria\\ЛР5-6_Джигун_СГ.docx",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\vyz\\incheneria\\МУ_ПР_Программная_инженерия_очно_заочная_Часть_2.pdf",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\vyz\\incheneria\\LR9-10_Dzhigun_ready.docx",
+      "unchanged": true
+    }
+  ],
+  "local-file-hashes.json": [
+    {
+      "path": "C:\\vyz\\incheneria\\account-service\\.env",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\vyz\\incheneria\\account-service\\.local\\dev.p12",
+      "unchanged": true
+    }
+  ],
+  "secrets-hashes-before.json": [
+    {
+      "path": "C:\\vyz\\incheneria\\account-service\\.env",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\vyz\\incheneria\\account-service\\.local\\dev.p12",
+      "unchanged": true
+    }
+  ]
+}

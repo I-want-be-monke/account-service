@@ -1,0 +1,16 @@
+<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${workspaceTitle}, false)}"></head><body>
+<div th:replace="~{fragments/layout :: shell(${workspaceTitle}, ${workspace}, ~{::main})}">
+<main id="main-content" class="page-content">
+  <div class="page-heading"><div><p class="eyebrow">Работа со счётом</p><h1 th:text="${workspaceTitle}">Выписки</h1><p th:text="${workspace == 'operations' ? 'Выберите счёт для просмотра истории и работы с операциями.' : 'Выберите счёт, затем укажите период выписки.'}"></p></div></div>
+  <form th:if="${uiRole != 'CLIENT'}" method="get" class="filter-grid card card-body" th:action="@{/workspace/{kind}(kind=${workspace})}"><label class="form-label">Номер счёта<input class="form-control" name="number" th:value="${number}" placeholder="Например, LS-0000000001" maxlength="32"></label><div class="filter-actions"><button class="btn btn-primary">Найти счёт</button><a th:replace="~{fragments/ui :: button(@{/workspace/{kind}(kind=${workspace})}, 'Сбросить', 'outline-secondary')}"></a></div></form>
+  <div class="card card-table"><div class="card-header"><h2 class="card-title">Доступные счета</h2><span class="text-secondary" th:text="|Всего: ${accounts.totalElements}|"></span></div>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Доступные счета"><table class="table table-vcenter"><thead><tr><th>Номер счёта</th><th th:if="${uiRole != 'CLIENT'}">Клиент</th><th>Статус</th><th class="money">Сальдо</th><th><span class="visually-hidden">Действия</span></th></tr></thead><tbody>
+    <tr th:each="a : ${accounts.content}"><td><a class="account-number" th:href="@{/accounts/{id}(id=${a.id})}" th:text="${a.accountNumber}"></a></td><td th:if="${uiRole != 'CLIENT'}" th:text="${a.clientName}"></td><td><span th:replace="~{fragments/ui :: status(${a.status})}"></span></td><td class="money" th:text="${@ui.money(a.currentBalance)}"></td><td><a class="btn btn-outline-primary btn-sm" th:href="@{/accounts/{id}/{kind}(id=${a.id},kind=${workspace == 'operations' ? 'operations' : 'statement'})}" th:text="${workspace == 'operations' ? 'Открыть операции' : 'Сформировать выписку'}"></a></td></tr>
+    <tr th:if="${accounts.empty}"><td colspan="5"><div class="empty-state"><h3>Счета не найдены</h3><p>Проверьте номер или сбросьте фильтр.</p></div></td></tr>
+  </tbody></table></div>
+  <div class="card-footer" th:with="previous=${accounts.hasPrevious()} ? @{/workspace/{kind}(kind=${workspace},number=${number},page=${accounts.number - 1})} : ${null}, next=${accounts.hasNext()} ? @{/workspace/{kind}(kind=${workspace},number=${number},page=${accounts.number + 1})} : ${null}">
+    <nav th:replace="~{fragments/ui :: pager(${previous}, ${next}, ${accounts.number}, ${accounts.totalPages})}"></nav>
+  </div></div>
+  <p class="form-hint">Положительное сальдо — задолженность, отрицательное — переплата.</p>
+</main></div></body></html>

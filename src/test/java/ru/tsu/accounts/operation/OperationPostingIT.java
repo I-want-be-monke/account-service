@@ -120,6 +120,47 @@ class OperationPostingIT extends ru.tsu.accounts.support.PostgresContextLifecycl
   return posting.post(draft.id(),draft.version(),key,fingerprint,actor.id(),actor.username(),UUID.randomUUID());
  }
  private String balance(UUID id){return jdbc.queryForObject("select current_balance::text from personal_account where id=?",String.class,id);}
+ @Test void zeroAmountServerErrorMarksFieldAndDoesNotCreateMovement() throws Exception {
+  var a=account();
+  var result=mvc.perform(post("/accounts/"+a.id()+"/operations/new").secure(true)
+   .with(authentication(auth("demo-accountant"))).with(csrf())
+   .param("kind","CHARGE").param("operationDate",today().toString()).param("amount","0.00")
+   .param("periodStart",today().withDayOfMonth(1).toString()).param("basis","Проверка нулевой суммы"))
+   .andExpect(status().isBadRequest()).andReturn();
+  assertThat(result.getModelAndView().getViewName()).isEqualTo("operations/form");
+  assertThat(result.getModelAndView().getModel()).containsEntry("fieldErrorName","amount");
+  String html=result.getResponse().getContentAsString();
+  var input=java.util.regex.Pattern.compile("<input\\b(?=[^>]*\\bid=\"amount\")[^>]*>").matcher(html);
+  assertThat(input.find()).isTrue();
+  assertThat(input.group()).contains("is-invalid","aria-invalid=\"true\"",
+   "aria-describedby=\"amount-hint amount-error\"","value=\"0.00\"");
+  assertThat(html).contains("id=\"amount-error\"","Сумма должна быть положительной")
+   .doesNotContain("Черновик сохранен","Операция проведена");
+  assertThat(balance(a.id())).isEqualTo("0.00");
+  assertThat(jdbc.queryForObject("select count(*) from financial_operation where account_id=?",Integer.class,a.id())).isZero();
+ }
+ @Test void negativeCorrectionTargetServerErrorPreservesInputAndPostedSource() throws Exception {
+  var a=account();
+  var source=posted(draft(a.id(),"CHARGE","100.00",null),UUID.randomUUID());
+  var result=mvc.perform(post("/operations/"+source.id()+"/corrections/new").secure(true)
+   .with(authentication(auth("demo-accountant"))).with(csrf())
+   .param("operationDate",today().toString()).param("targetAmount","-1.00")
+   .param("reason","Проверка отрицательной цели").param("basis","Контроль формы"))
+   .andExpect(status().isBadRequest()).andReturn();
+  assertThat(result.getModelAndView().getViewName()).isEqualTo("operations/correction");
+  assertThat(result.getModelAndView().getModel()).containsEntry("fieldErrorName","targetAmount");
+  String html=result.getResponse().getContentAsString();
+  var input=java.util.regex.Pattern.compile("<input\\b(?=[^>]*\\bid=\"targetAmount\")[^>]*>").matcher(html);
+  assertThat(input.find()).isTrue();
+  assertThat(input.group()).contains("is-invalid","aria-invalid=\"true\"",
+   "aria-describedby=\"target-hint targetAmount-error\"","value=\"-1.00\"");
+  assertThat(html).contains("id=\"targetAmount-error\"","неотрицательную целевую сумму","Проверка отрицательной цели")
+   .doesNotContain("Черновик сохранен","Операция проведена");
+  assertThat(balance(a.id())).isEqualTo("100.00");
+  assertThat(jdbc.queryForObject("select count(*) from financial_operation where account_id=?",Integer.class,a.id())).isEqualTo(1);
+  assertThat(jdbc.queryForObject("select storage_status from financial_operation where id=?",String.class,source.id())).isEqualTo("POSTED");
+  assertThat(jdbc.queryForObject("select amount::text from financial_operation where id=?",String.class,source.id())).isEqualTo("100.00");
+ }
  @Test void chargePaymentBalanceAdvanceAndReconcile(){
   var a=account();
   var charge=draft(a.id(),"CHARGE","1000.00","inv-"+UUID.randomUUID());

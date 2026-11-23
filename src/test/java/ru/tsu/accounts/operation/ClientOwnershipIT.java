@@ -136,7 +136,7 @@ class ClientOwnershipIT extends ru.tsu.accounts.support.PostgresContextLifecycle
   var html=mvc.perform(get("/accounts/"+f.first.id()+"/operations").secure(true)
    .with(authentication(auth("demo-client"))).param("kind","CORRECTION").param("size","1"))
    .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-  assertThat(html).contains("560.00").contains("Найдено движений: 2")
+  assertThat(html).contains("560,00 ₽").contains("Найдено 2")
    .contains("kind=CORRECTION").doesNotContain(extra.id().toString());
   mvc.perform(get("/api/v1/accounts/"+f.first.id()).secure(true)
    .with(authentication(auth("demo-client"))))

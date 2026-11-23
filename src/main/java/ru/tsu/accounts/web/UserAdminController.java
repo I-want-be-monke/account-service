@@ -39,10 +39,13 @@ public class UserAdminController {
     private final AppRoleRepository roles;
     private final ConfirmationGuard confirmations;
     private final AuditAttemptService attempts;
+    private final ClientPickerModel clientPicker;
 
     public UserAdminController(UserManagementService users, AppRoleRepository roles,
-                               ConfirmationGuard confirmations, AuditAttemptService attempts) {
+                               ConfirmationGuard confirmations, AuditAttemptService attempts,
+                               ClientPickerModel clientPicker) {
         this.users = users; this.roles = roles; this.confirmations = confirmations; this.attempts = attempts;
+        this.clientPicker = clientPicker;
     }
 
     @GetMapping
@@ -57,19 +60,27 @@ public class UserAdminController {
     }
 
     @GetMapping("/new")
-    public String createPage(Model model) {
-        model.addAttribute("form", new UserCreateForm());
+    public String createPage(@RequestParam(required = false) UUID clientId,
+                             @RequestParam(defaultValue = "") String clientQuery,
+                             @RequestParam(defaultValue = "false") boolean searchClients, Model model) {
+        UserCreateForm form = new UserCreateForm();
+        form.setClientId(clientId);
+        if (clientId != null) form.setRoleCode("CLIENT");
+        model.addAttribute("form", form);
         model.addAttribute("roles", roles.findAll());
+        clientPicker.populate(clientId, clientQuery, searchClients, "ACTIVE", model);
         return "users/new";
     }
 
     @PostMapping("/new")
     public String create(@ModelAttribute("form") UserCreateForm form, BindingResult errors,
+                         @RequestParam(defaultValue = "") String clientQuery,
                          @AuthenticationPrincipal AccountPrincipal actor, HttpServletRequest request,
                          HttpServletResponse response, Model model) {
         if (errors.hasErrors()) {
             response.setStatus(400);
             model.addAttribute("roles", roles.findAll());
+            clientPicker.populate(form.getClientId(), clientQuery, false, "ACTIVE", model);
             return "users/new";
         }
         try {
@@ -80,17 +91,29 @@ public class UserAdminController {
             response.setStatus(e.status().value());
             denied(actor, request, "USER_CREATE_DENIED", null, e);
             model.addAttribute("roles", roles.findAll()); model.addAttribute("formError", e.getMessage());
+            clientPicker.populate(form.getClientId(), clientQuery, false, "ACTIVE", model);
             return "users/new";
         }
     }
 
     @GetMapping("/{id}/edit")
-    public String editPage(@PathVariable UUID id, Model model) {
+    public String editPage(@PathVariable UUID id, @RequestParam(required = false) UUID clientId,
+                           @RequestParam(defaultValue = "") String clientQuery,
+                           @RequestParam(defaultValue = "false") boolean clearClient,
+                           @RequestParam(defaultValue = "false") boolean searchClients, Model model) {
         var user = users.get(id);
         model.addAttribute("user", user);
         model.addAttribute("form", UserEditForm.from(user));
-        model.addAttribute("accessForm", AccessChangeForm.from(user));
+        AccessChangeForm accessForm = AccessChangeForm.from(user);
+        if (clearClient) {
+            accessForm.setClientId(null);
+        } else if (clientId != null) {
+            accessForm.setClientId(clientId);
+            accessForm.setRoleCode("CLIENT");
+        }
+        model.addAttribute("accessForm", accessForm);
         model.addAttribute("roles", roles.findAll());
+        clientPicker.populate(accessForm.getClientId(), clientQuery, searchClients, "ACTIVE", model);
         return "users/edit";
     }
 
@@ -115,11 +138,12 @@ public class UserAdminController {
 
     @PostMapping("/{id}/prepare")
     public String prepare(@PathVariable UUID id, @ModelAttribute("accessForm") AccessChangeForm form,
-                          BindingResult errors, @AuthenticationPrincipal AccountPrincipal actor,
+                          BindingResult errors, @RequestParam(defaultValue = "") String clientQuery,
+                          @AuthenticationPrincipal AccountPrincipal actor,
                           HttpServletRequest request, HttpServletResponse response, Model model) {
         if (errors.hasErrors()) {
             response.setStatus(400);
-            return accessWithError(id, model, form, "Укажите роль, статус и причину.");
+            return accessWithError(id, model, form, "Укажите роль, статус и причину.", clientQuery);
         }
         try {
             users.validateAccess(id, form.getRoleCode(), form.getStatus(), form.getClientId(),
@@ -129,14 +153,16 @@ public class UserAdminController {
         } catch (UserCommandException e) {
             response.setStatus(e.status().value());
             denied(actor, request, "USER_ACCESS_DENIED", id, e);
-            return accessWithError(id, model, form, e.getMessage());
+            return accessWithError(id, model, form, e.getMessage(), clientQuery);
         }
     }
 
     @GetMapping("/{id}/confirm")
     public String confirmPage(@PathVariable UUID id, @AuthenticationPrincipal AccountPrincipal actor,
                               HttpSession session, Model model) {
-        model.addAttribute("pending", confirmations.view(session, actor.id(), id));
+        var pending = confirmations.view(session, actor.id(), id);
+        model.addAttribute("pending", pending);
+        clientPicker.populate(pending.clientId(), "", false, "ACTIVE", model);
         model.addAttribute("user", users.get(id));
         model.addAttribute("roleNames", roles.findAll().stream().collect(
             Collectors.toMap(r -> r.getCode(), r -> r.getDisplayName())));
@@ -163,14 +189,16 @@ public class UserAdminController {
         model.addAttribute("user", user); model.addAttribute("form", form);
         model.addAttribute("accessForm", AccessChangeForm.from(user));
         model.addAttribute("roles", roles.findAll()); model.addAttribute("formError", message);
+        clientPicker.populate(user.clientId(), "", false, "ACTIVE", model);
         return "users/edit";
     }
 
-    private String accessWithError(UUID id, Model model, AccessChangeForm form, String message) {
+    private String accessWithError(UUID id, Model model, AccessChangeForm form, String message, String clientQuery) {
         var user = users.get(id);
         model.addAttribute("user", user); model.addAttribute("form", UserEditForm.from(user));
         model.addAttribute("accessForm", form); model.addAttribute("roles", roles.findAll());
         model.addAttribute("accessError", message);
+        clientPicker.populate(form.getClientId(), clientQuery, false, "ACTIVE", model);
         return "users/edit";
     }
 

@@ -1,0 +1,42 @@
+{
+  "renderer": "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1119-907-0_26.1119.907.0_x64__3k8sg7r9htsxt\\dependencies\\native\\poppler\\Library\\bin\\pdftoppm.exe",
+  "documents": [
+    {
+      "file": "C:\\vyz\\incheneria\\account-service\\.local\\redesign-2026-11-23\\after-final-yandex-02\\yandex\\statement-print.pdf",
+      "pages": [
+        {
+          "widthPt": 841.9199829101562,
+          "heightPt": 595.9199829101562,
+          "image": "C:\\vyz\\incheneria\\account-service\\.local\\redesign-2026-11-23\\tmp\\pdfs\\yandex-statement-print-1.png"
+        }
+      ],
+      "pageCount": 1,
+      "containsAccountNumber": true,
+      "containsClosing550": true,
+      "containsApplicationControls": false,
+      "sha256": "2594881b16b47ec8311f78130189b671e1cb44e0c0ce6cacdb0feb0a80d53f9e",
+      "status": "PASS"
+    },
+    {
+      "file": "C:\\vyz\\incheneria\\account-service\\.local\\redesign-2026-11-23\\after-final-yandex-02\\yandex\\report-print.pdf",
+      "pages": [
+        {
+          "widthPt": 841.9199829101562,
+          "heightPt": 595.9199829101562,
+          "image": "C:\\vyz\\incheneria\\account-service\\.local\\redesign-2026-11-23\\tmp\\pdfs\\yandex-report-print-1.png"
+        }
+      ],
+      "pageCount": 1,
+      "containsAccountNumber": true,
+      "containsClosing550": true,
+      "containsApplicationControls": false,
+      "sha256": "20a291a774ed5529f81879870c5fa76d9693c46d0c3dd505fe1794073f428be3",
+      "status": "PASS"
+    }
+  ],
+  "status": "PASS",
+  "visualReview": {
+    "scope": "Both full single-page Poppler renders inspected. Cyrillic, four statement movements, totals550.00, no navigation, no clipped or overlapping text.",
+    "status": "PASS"
+  }
+}

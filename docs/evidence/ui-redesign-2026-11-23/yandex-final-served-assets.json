@@ -1,0 +1,24 @@
+{
+  "capturedAt": "2026-11-23T19:26:38.071Z",
+  "origin": "https://localhost:18448",
+  "image": "sha256:2712d237620cc7ba50ee542839bf0c515517a8fe3fc65577f9fcc4f700912b65",
+  "fullMainTestHash": "58E16AB63D4BE63F2F127399697808BD6C163DE79DBC0D514447E6E6EF5D6B32",
+  "runtimeTestHash": "8e0c37d61b0e3132b1fe105fdc9263df2332488c46f55efb8f32c871bf7e4aae",
+  "assets": [
+    {
+      "path": "/css/app.css",
+      "sha256": "cc9d2bfe3e32275c45b94e14e97e5bfa1875b9c8325ba56fb2cdf674b51427d7",
+      "bytes": 24981
+    },
+    {
+      "path": "/css/print.css",
+      "sha256": "3d238504eba3c4d389886f36f5b08d3474dd4aee66590866e71f7253cdaeb2f0",
+      "bytes": 3856
+    },
+    {
+      "path": "/js/app.js",
+      "sha256": "8f6fec598902708b76868652aa5b49339b472d3e9840463e76c18f8ddf592827",
+      "bytes": 9526
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+[
+  {
+    "browser": "yandex",
+    "file": "after-final-yandex-02\\yandex\\report-print.pdf",
+    "pages": 1,
+    "size": [
+      [
+        841.92,
+        595.92
+      ]
+    ],
+    "bytes": 81117,
+    "sha256": "20a291a774ed5529f81879870c5fa76d9693c46d0c3dd505fe1794073f428be3",
+    "text_chars": 1288,
+    "images": [
+      "pdf-review\\yandex-report-print-1.png"
+    ]
+  },
+  {
+    "browser": "yandex",
+    "file": "after-final-yandex-02\\yandex\\statement-print.pdf",
+    "pages": 1,
+    "size": [
+      [
+        841.92,
+        595.92
+      ]
+    ],
+    "bytes": 96965,
+    "sha256": "2594881b16b47ec8311f78130189b671e1cb44e0c0ce6cacdb0feb0a80d53f9e",
+    "text_chars": 1392,
+    "images": [
+      "pdf-review\\yandex-statement-print-1.png"
+    ]
+  }
+]

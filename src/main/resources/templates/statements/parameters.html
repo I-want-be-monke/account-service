@@ -1,19 +1,24 @@
 <!doctype html>
 <html lang="ru" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Выписка — выбор периода</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
-<body><main class="wide">
-<nav><a th:href="@{/accounts/{id}(id=${account.id})}">← Счёт</a> <a th:href="@{/}">Главная</a></nav>
-<h1>Выписка по счёту <span th:text="${account.accountNumber}"></span></h1>
-<dl><dt>Владелец</dt><dd th:text="${account.ownerName}"></dd>
-<dt>Валюта</dt><dd th:text="${account.currency}"></dd>
-<dt>Начало доступной истории</dt><dd th:text="${account.historyStartOn}"></dd></dl>
-<p>Выберите обе даты включительно. Допустим период до 366 календарных дней, начиная с доступной истории счёта.</p>
-<p class="alert" role="alert" th:if="${formError}" th:text="${formError}"></p>
-<form method="get" th:action="@{/accounts/{id}/statement/result(id=${account.id})}" class="filters">
-<label>С даты <input type="date" name="from" required th:min="${account.historyStartOn}" th:value="${from}"></label>
-<label>По дату <input type="date" name="to" required th:min="${account.historyStartOn}" th:value="${to}"></label>
-<button type="submit">Сформировать выписку</button>
-</form>
-<p class="hint">Положительное сальдо означает задолженность, отрицательное — переплату. Выписка включает только проведённые операции. Отсутствие движений не мешает сформировать документ.</p>
-</main></body></html>
+<head th:replace="~{fragments/layout :: head('Выписка по счёту', false)}"></head>
+<body th:replace="~{fragments/layout :: shell('Выписка по счёту', 'statements', ~{::main})}">
+<main id="main-content">
+    <header class="page-header"><div><p class="page-pretitle" th:text="${account.accountNumber}"></p><h1>Выписка по счёту</h1><p class="text-secondary" th:text="${account.ownerName}"></p></div><a th:replace="~{fragments/ui :: button(@{/accounts/{id}(id=${account.id})}, 'К карточке счёта', 'outline-secondary')}"></a></header>
+    <section class="card" aria-labelledby="statement-period-title">
+        <div class="card-header"><h2 class="card-title" id="statement-period-title">Период выписки</h2></div>
+        <div class="card-body">
+            <p th:replace="~{fragments/ui :: alert('danger', ${formError})}"></p>
+            <form method="get" th:action="@{/accounts/{id}/statement/result(id=${account.id})}">
+                <div class="form-grid">
+                    <div><label class="form-label" for="statement-from">Дата начала</label><input class="form-control" id="statement-from" type="date" name="from" required th:min="${account.historyStartOn}" th:value="${from}" aria-describedby="period-hint"></div>
+                    <div><label class="form-label" for="statement-to">Дата окончания</label><input class="form-control" id="statement-to" type="date" name="to" required th:min="${account.historyStartOn}" th:value="${to}" aria-describedby="period-hint"></div>
+                </div>
+                <p class="form-hint" id="period-hint">Обе даты включаются в выписку. Период может составлять до 366 дней. История доступна с <span th:text="${@ui.date(account.historyStartOn)}"></span>.</p>
+                <div class="form-actions"><button class="btn btn-primary" type="submit">Сформировать выписку</button></div>
+            </form>
+        </div>
+    </section>
+    <aside class="card"><div class="card-body"><h2 class="card-title">Что входит в выписку</h2><p>Проведённые операции, корректировки и изменение остатка в рублях. Выписку можно сформировать и за период без движений.</p><p class="text-secondary">Положительное сальдо означает задолженность, отрицательное — переплату.</p></div></aside>
+</main>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "exact": true,
+  "tables": 9,
+  "controls": "LS-0000000006|550.00\nLS-0000000007|550.00",
+  "phase": "after final application restart"
+}

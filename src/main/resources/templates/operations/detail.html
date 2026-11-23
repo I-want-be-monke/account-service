@@ -1,28 +1,30 @@
-<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Операция</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide">
-<nav><a th:href="@{/accounts/{id}/operations(id=${account.id})}">← Операции счета</a></nav>
-<h1 th:text="${operation.kind == 'CHARGE' ? 'Начисление' : operation.kind == 'PAYMENT' ? 'Платеж' : 'Исправление'}"></h1>
-<p class="notice" th:if="${param.created}">Черновик сохранен. Сальдо еще не изменилось.</p>
-<p class="notice" th:if="${param.updated}">Черновик обновлен.</p>
-<p class="notice" th:if="${param.posted}">Операция проведена; сальдо обновлено.</p>
-<dl><dt>Счет</dt><dd th:text="${account.accountNumber}"></dd>
-<dt>Состояние</dt><dd th:text="${operation.status == 'CORRECTED' ? 'Исправлено' : operation.status == 'POSTED' ? 'Проведено' : 'Черновик'}"></dd>
-<dt>Дата</dt><dd th:text="${operation.date}"></dd>
-<dt>Сумма движения, ₽</dt><dd th:text="${operation.amount}"></dd>
-<dt>Изменение сальдо, ₽</dt><dd th:text="${operation.delta}"></dd>
-<dt>Основание</dt><dd th:text="${operation.basis}"></dd>
-<dt th:if="${operation.periodStart != null}">Расчетный период</dt><dd th:if="${operation.periodStart != null}" th:text="${operation.periodStart}"></dd>
-<dt th:if="${operation.paymentMethod != null}">Способ платежа</dt><dd th:if="${operation.paymentMethod != null}" th:text="${operation.paymentMethod == 'MANUAL_TRANSFER' ? 'Ручной перевод' : 'Регистрация наличного платежа'}"></dd>
-<dt th:if="${operation.correctsOperationId != null}">Исходная операция</dt><dd th:if="${operation.correctsOperationId != null}"><a th:href="@{/operations/{id}(id=${operation.correctsOperationId})}" th:text="${operation.correctsOperationId}"></a></dd>
-<dt th:if="${operation.targetAmount != null}">Целевая сумма, ₽</dt><dd th:if="${operation.targetAmount != null}" th:text="${operation.targetAmount}"></dd>
-<dt th:if="${operation.correctionReason != null}">Причина исправления</dt><dd th:if="${operation.correctionReason != null}" th:text="${operation.correctionReason}"></dd>
-<dt>Номер документа</dt><dd th:text="${operation.documentNumber == null ? 'Не указан' : operation.documentNumber}"></dd>
-<dt>Проведено</dt><dd th:text="${operation.postedAt == null ? 'Ожидает проведения' : operation.postedAt}"></dd>
-<dt>Текущее сальдо счета, ₽</dt><dd th:text="${account.currentBalance}"></dd></dl>
-<p th:if="${isAccountant and operation.status == 'PREPARED'}"><a th:href="@{/operations/{id}/edit(id=${operation.id})}">Редактировать</a> · <a th:href="@{/operations/{id}/discard(id=${operation.id})}">Отбросить черновик</a></p>
-<p th:if="${isAccountant and operation.status == 'PREPARED' and account.status == 'OPEN'}"><a th:href="@{/operations/{id}/confirm(id=${operation.id})}">Проверить и провести</a></p>
-<p th:if="${isAccountant and operation.kind != 'CORRECTION' and (operation.status == 'POSTED' or operation.status == 'CORRECTED') and account.status == 'OPEN'}"><a th:href="@{/operations/{id}/corrections/new(id=${operation.id})}">Создать исправление</a></p>
-<section th:if="${operation.kind != 'CORRECTION' and (operation.status == 'POSTED' or operation.status == 'CORRECTED')}"><h2>Проведенные исправления</h2>
-<div class="table-wrap"><table><thead><tr><th>Дата</th><th>Целевая сумма, ₽</th><th>Изменение, ₽</th><th>Причина</th><th>Действие</th></tr></thead><tbody>
-<tr th:each="c : ${corrections}"><td th:text="${c.date}"></td><td th:text="${c.targetAmount}"></td><td th:text="${c.delta}"></td><td th:text="${c.correctionReason}"></td><td><a th:href="@{/operations/{id}(id=${c.id})}">Открыть</a></td></tr>
-<tr th:if="${#lists.isEmpty(corrections)}"><td colspan="5">Исправлений пока нет.</td></tr></tbody></table></div></section>
-</main></body></html>
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Операция', false)}"></head>
+<body><div th:replace="~{fragments/layout :: shell('Операция', 'operations', ~{::main})}"><main id="main-content" class="page-content">
+
+    <div class="page-heading"><div><p class="eyebrow" th:text="${account.accountNumber}"></p><h1 th:text="${operation.kind == 'CHARGE' ? 'Начисление' : operation.kind == 'PAYMENT' ? 'Платеж' : 'Исправление'}"></h1><p class="text-secondary" th:text="${operation.documentNumber == null ? 'Документ без номера' : operation.documentNumber}"></p></div><span class="status-pill" th:attr="data-status=${operation.status}" th:text="${@ui.status(operation.status)}"></span></div>
+    <div class="alert alert-success" role="status" th:if="${param.created}">Черновик сохранен. Проверьте документ перед проведением.</div><div class="alert alert-success" role="status" th:if="${param.updated}">Черновик обновлен.</div><div class="alert alert-success" role="status" th:if="${param.posted}">Операция проведена, сальдо обновлено.</div>
+    <ol class="flow-steps" aria-label="Этапы операции" th:if="${isAccountant and operation.status == 'PREPARED'}"><li class="is-complete"><span>1</span> Подготовка</li><li class="is-current" aria-current="step"><span>2</span> Проверка</li><li><span>3</span> Проведение</li></ol>
+    <section class="metric-grid"><div class="card metric-card"><div class="card-body"><p class="text-secondary">Сумма движения</p><strong class="metric-value money" th:text="${@ui.money(operation.amount)}"></strong></div></div><div class="card metric-card"><div class="card-body"><p class="text-secondary">Изменение сальдо</p><strong class="metric-value money" th:text="${@ui.money(operation.delta)}"></strong></div></div><div class="card metric-card"><div class="card-body"><p class="text-secondary">Текущее сальдо счёта</p><strong class="metric-value money" th:text="${@ui.money(account.currentBalance)}"></strong></div></div></section>
+    <div class="action-bar" th:if="${isAccountant}">
+        <th:block th:if="${operation.status == 'PREPARED'}"><a class="btn btn-primary" th:if="${account.status == 'OPEN'}" th:href="@{/operations/{id}/confirm(id=${operation.id})}">Проверить и провести</a><a class="btn btn-outline-secondary" th:href="@{/operations/{id}/edit(id=${operation.id})}">Редактировать</a><a class="btn btn-outline-danger" th:href="@{/operations/{id}/discard(id=${operation.id})}">Отбросить черновик</a></th:block>
+        <a class="btn btn-primary" th:if="${operation.kind != 'CORRECTION' and (operation.status == 'POSTED' or operation.status == 'CORRECTED') and account.status == 'OPEN'}" th:href="@{/operations/{id}/corrections/new(id=${operation.id})}">Создать исправление</a>
+    </div>
+    <section class="card"><div class="card-header"><h2 class="card-title">Реквизиты операции</h2></div><div class="card-body"><dl class="details-list">
+        <div><dt>Счёт</dt><dd><a th:href="@{/accounts/{id}(id=${account.id})}" th:text="${account.accountNumber}"></a></dd></div><div><dt>Дата</dt><dd th:text="${@ui.date(operation.date)}"></dd></div><div><dt>Основание</dt><dd th:text="${operation.basis}"></dd></div>
+        <div th:if="${operation.periodStart != null}"><dt>Расчетный период</dt><dd th:text="${@ui.date(operation.periodStart)}"></dd></div>
+        <div th:if="${operation.paymentMethod != null}"><dt>Способ платежа</dt><dd th:text="${@ui.status(operation.paymentMethod)}"></dd></div>
+        <div th:if="${operation.correctsOperationId != null}"><dt>Исходная операция</dt><dd><a th:href="@{/operations/{id}(id=${operation.correctsOperationId})}" th:text="${sourceOperation == null or sourceOperation.documentNumber == null ? 'Открыть исходный документ' : sourceOperation.documentNumber}"></a></dd></div>
+        <div th:if="${sourceOperation != null}"><dt>Исходная сумма</dt><dd class="money" th:text="${@ui.money(sourceOperation.amount)}"></dd></div>
+        <div th:if="${operation.targetAmount != null}"><dt>Целевая сумма</dt><dd class="money" th:text="${@ui.money(operation.targetAmount)}"></dd></div>
+        <div th:if="${operation.correctionReason != null}"><dt>Причина исправления</dt><dd th:text="${operation.correctionReason}"></dd></div>
+        <div><dt>Номер документа</dt><dd th:text="${operation.documentNumber == null ? 'Не указан' : operation.documentNumber}"></dd></div><div><dt>Проведено</dt><dd th:text="${operation.postedAt == null ? 'Ожидает проведения' : @ui.date(operation.postedAt)}"></dd></div>
+    </dl></div></section>
+    <section class="card card-table" th:if="${operation.kind != 'CORRECTION' and (operation.status == 'POSTED' or operation.status == 'CORRECTED')}"><div class="card-header"><h2 class="card-title">Проведенные исправления</h2></div><div class="table-responsive" tabindex="0" role="region" aria-label="Проведенные исправления"><table class="table table-vcenter"><thead><tr><th scope="col">Дата</th><th scope="col" class="text-end">Целевая сумма</th><th scope="col" class="text-end">Изменение</th><th scope="col">Причина</th><th scope="col">Действие</th></tr></thead><tbody>
+        <tr th:each="c : ${corrections}"><td th:text="${@ui.date(c.date)}"></td><td class="money text-end" th:text="${@ui.money(c.targetAmount)}"></td><td class="money text-end" th:text="${@ui.money(c.delta)}"></td><td class="cell-description" th:text="${c.correctionReason}"></td><td><a class="btn btn-outline-secondary btn-sm" th:href="@{/operations/{id}(id=${c.id})}">Открыть</a></td></tr>
+        <tr th:if="${#lists.isEmpty(corrections)}"><td colspan="5"><div class="empty-state"><h3>Исправлений пока нет</h3><p>Здесь появятся связанные корректировки исходного документа.</p></div></td></tr>
+    </tbody></table></div></section>
+    <details class="card technical-details"><summary>Служебные сведения</summary><div class="card-body"><dl class="details-list"><div><dt>Идентификатор операции</dt><dd><code th:text="${operation.id}"></code></dd></div></dl></div></details>
+    <a class="back-link" th:href="@{/accounts/{id}/operations(id=${account.id})}">Операции счета</a>
+</main></div></body></html>

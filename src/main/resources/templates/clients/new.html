@@ -1,9 +1,23 @@
-<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Новый клиент</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide"><nav><a th:href="@{/clients}">К списку клиентов</a></nav><h1>Создание клиента</h1><p class="alert" th:if="${formError}" th:text="${formError}"></p>
-<form method="post" th:action="@{/clients/new}" th:object="${form}">
-<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-<label>Тип клиента<select th:field="*{clientType}" required><option value="">Выберите тип</option><option value="PERSON">Физическое лицо</option><option value="ORGANIZATION">Организация</option></select></label>
-<label>ФИО или наименование<input th:field="*{displayName}" maxlength="200" required></label>
-<label>Тип идентификатора<input th:field="*{identifierType}" maxlength="32" placeholder="PASSPORT / INN / DEMO" required></label>
-<label>Значение идентификатора<input th:field="*{identifierValue}" maxlength="100" required></label>
-<label>Телефон<input th:field="*{phone}" maxlength="32"></label><label>Электронная почта<input th:field="*{email}" maxlength="254" type="email"></label>
-<button type="submit">Создать</button></form></main></body></html>
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Новый клиент', false)}"></head>
+<body><div th:replace="~{fragments/layout :: shell('Новый клиент', 'clients', ~{::main})}"><main id="main-content" class="page-content">
+
+    <div class="page-heading"><div><h1>Создание клиента</h1><p class="text-secondary">Заполните основные сведения, чтобы открыть клиенту лицевой счёт.</p></div><a class="btn btn-outline-secondary" th:href="@{/clients}">К списку клиентов</a></div>
+    <div class="alert alert-danger" role="alert" th:if="${formError}" th:text="${formError}"></div>
+    <section class="card form-card"><div class="card-body"><form method="post" th:action="@{/clients/new}" th:object="${form}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+            <fieldset><legend>Основные сведения</legend><div class="form-grid">
+                <div class="form-field"><label class="form-label" for="clientType">Тип клиента</label><select class="form-select" id="clientType" th:field="*{clientType}" th:errorclass="is-invalid" required><option value="">Выберите тип</option><option value="PERSON">Физическое лицо</option><option value="ORGANIZATION">Организация</option></select><p class="invalid-feedback" th:if="${#fields.hasErrors('clientType')}" th:errors="*{clientType}"></p></div>
+                <div class="form-field"><label class="form-label" for="displayName">ФИО или наименование</label><input class="form-control" id="displayName" th:field="*{displayName}" th:errorclass="is-invalid" maxlength="200" required autocomplete="name"><p class="invalid-feedback" th:if="${#fields.hasErrors('displayName')}" th:errors="*{displayName}"></p></div>
+                <div class="form-field"><label class="form-label" for="identifierType">Тип идентификатора</label><input class="form-control" id="identifierType" th:field="*{identifierType}" th:errorclass="is-invalid" maxlength="32" placeholder="PASSPORT, INN или DEMO" required aria-describedby="identifier-hint"><p id="identifier-hint" class="form-hint">Например, PASSPORT для паспорта или INN для ИНН.</p><p class="invalid-feedback" th:if="${#fields.hasErrors('identifierType')}" th:errors="*{identifierType}"></p></div>
+                <div class="form-field"><label class="form-label" for="identifierValue">Значение идентификатора</label><input class="form-control" id="identifierValue" th:field="*{identifierValue}" th:errorclass="is-invalid" maxlength="100" required><p class="invalid-feedback" th:if="${#fields.hasErrors('identifierValue')}" th:errors="*{identifierValue}"></p></div>
+            </div></fieldset>
+            <fieldset><legend>Контактные данные</legend><p class="form-hint">Необязательные сведения для связи с клиентом.</p><div class="form-grid">
+                <div class="form-field"><label class="form-label" for="phone">Телефон</label><input class="form-control" id="phone" th:field="*{phone}" th:errorclass="is-invalid" maxlength="32" type="tel" autocomplete="tel"><p class="invalid-feedback" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></p></div>
+                <div class="form-field"><label class="form-label" for="email">Электронная почта</label><input class="form-control" id="email" th:field="*{email}" th:errorclass="is-invalid" maxlength="254" type="email" autocomplete="email"><p class="invalid-feedback" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></p></div>
+            </div></fieldset>
+        <div class="action-bar form-actions"><button class="btn btn-primary" type="submit">Создать</button><a class="btn btn-outline-secondary" th:href="@{/clients}">Отмена</a></div>
+    </form></div></section>
+</main></div></body></html>

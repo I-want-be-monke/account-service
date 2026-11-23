@@ -1,12 +1,13 @@
-<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Карточка клиента</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide"><nav><a th:href="@{/clients}">К списку клиентов</a> <a th:href="@{/}">Главная</a></nav><h1 th:text="${client.displayName}"></h1>
-<p class="notice" th:if="${param.created}">Клиент создан.</p><p class="notice" th:if="${param.updated}">Изменения сохранены.</p>
-<dl><dt>Тип</dt><dd th:text="${client.clientType == 'PERSON' ? 'Физическое лицо' : 'Организация'}"></dd>
-<dt>Идентификатор</dt><dd th:text="|${client.identifierType}: ${client.identifierValue}|"></dd>
-<dt>Телефон</dt><dd th:text="${client.phone == null ? 'Не указан' : client.phone}"></dd>
-<dt>Электронная почта</dt><dd th:text="${client.email == null ? 'Не указана' : client.email}"></dd>
-<dt>Статус</dt><dd th:text="${client.status == 'ACTIVE' ? 'Активен' : 'Архив'}"></dd>
-<dt>Версия</dt><dd th:text="${client.version}"></dd></dl>
-<p><a th:href="@{/accounts(clientId=${client.id})}">Счета клиента</a></p>
-<p th:if="${isOperator}"><a th:href="@{/clients/{id}/accounts/new(id=${client.id})}">Открыть счет</a></p>
-<p th:if="${isOperator}"><a th:if="${client.status == 'ACTIVE'}" th:href="@{/clients/{id}/edit(id=${client.id})}">Изменить данные</a> <a th:href="@{/clients/{id}/status(id=${client.id})}">Изменить статус</a></p>
-</main></body></html>
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Карточка клиента', false)}"></head>
+<body><div th:replace="~{fragments/layout :: shell('Карточка клиента', 'clients', ~{::main})}"><main id="main-content" class="page-content">
+
+    <div class="page-heading"><div><p class="eyebrow">Карточка клиента</p><h1 th:text="${client.displayName}"></h1><p class="text-secondary" th:text="${client.clientType == 'PERSON' ? 'Физическое лицо' : 'Организация'}"></p></div><span class="status-pill" th:attr="data-status=${client.status}" th:text="${@ui.status(client.status)}"></span></div>
+    <div class="alert alert-success" role="status" th:if="${param.created}">Клиент создан.</div><div class="alert alert-success" role="status" th:if="${param.updated}">Изменения сохранены.</div>
+    <div class="action-bar"><a class="btn btn-primary" th:href="@{/accounts(clientId=${client.id})}">Счета клиента</a><a class="btn btn-outline-secondary" th:if="${isOperator}" th:href="@{/clients/{id}/accounts/new(id=${client.id})}">Открыть счет</a><a class="btn btn-outline-secondary" th:if="${isOperator and client.status == 'ACTIVE'}" th:href="@{/clients/{id}/edit(id=${client.id})}">Изменить данные</a><a class="btn btn-outline-secondary" th:if="${isOperator}" th:href="@{/clients/{id}/status(id=${client.id})}">Изменить статус</a></div>
+    <section class="card"><div class="card-header"><h2 class="card-title">Данные клиента</h2></div><div class="card-body"><dl class="details-list"><div><dt>Тип клиента</dt><dd th:text="${client.clientType == 'PERSON' ? 'Физическое лицо' : 'Организация'}"></dd></div><div><dt>Идентификатор</dt><dd th:text="|${client.identifierType} · ${client.identifierValue}|"></dd></div><div><dt>Телефон</dt><dd th:text="${client.phone == null ? 'Не указан' : client.phone}"></dd></div><div><dt>Электронная почта</dt><dd th:text="${client.email == null ? 'Не указана' : client.email}"></dd></div></dl></div></section>
+    <section th:replace="~{fragments/ui :: accountPreview(${clientAccounts}, @{/accounts(clientId=${client.id})}, ${isOperator and client.status == 'ACTIVE'} ? @{/clients/{id}/accounts/new(id=${client.id})} : ${null})}"></section>
+    <details class="card technical-details"><summary>Служебные сведения</summary><div class="card-body"><dl class="details-list"><div><dt>Идентификатор карточки</dt><dd><code th:text="${client.id}"></code></dd></div><div><dt>Версия</dt><dd th:text="${client.version}"></dd></div></dl></div></details>
+    <a class="back-link" th:href="@{/clients}">К списку клиентов</a>
+</main></div></body></html>

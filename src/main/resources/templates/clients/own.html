@@ -1,2 +1,10 @@
-<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Моя карточка</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide"><nav><a th:href="@{/}">Главная</a></nav><h1>Моя карточка клиента</h1>
-<dl><dt>Имя / наименование</dt><dd th:text="${client.displayName}"></dd><dt>Идентификатор</dt><dd th:text="|${client.identifierType}: ${client.identifierValue}|"></dd><dt>Телефон</dt><dd th:text="${client.phone == null ? 'Не указан' : client.phone}"></dd><dt>Электронная почта</dt><dd th:text="${client.email == null ? 'Не указана' : client.email}"></dd><dt>Статус</dt><dd th:text="${client.status == 'ACTIVE' ? 'Активен' : 'Архив'}"></dd></dl><p><a th:href="@{/my/accounts}">Мои лицевые счета</a></p></main></body></html>
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Моя карточка', false)}"></head>
+<body><div th:replace="~{fragments/layout :: shell('Моя карточка', 'clients', ~{::main})}"><main id="main-content" class="page-content">
+
+    <div class="page-heading"><div><h1>Моя карточка клиента</h1><p class="text-secondary">Ваши данные в системе лицевых счетов.</p></div><a class="btn btn-primary" th:href="@{/my/accounts}">Мои лицевые счета</a></div>
+    <section class="card"><div class="card-header"><h2 class="card-title" th:text="${client.displayName}"></h2><span class="status-pill" th:attr="data-status=${client.status}" th:text="${@ui.status(client.status)}"></span></div><div class="card-body"><dl class="details-list"><div><dt>Имя / наименование</dt><dd th:text="${client.displayName}"></dd></div><div><dt>Идентификатор</dt><dd th:text="|${client.identifierType} · ${client.identifierValue}|"></dd></div><div><dt>Телефон</dt><dd th:text="${client.phone == null ? 'Не указан' : client.phone}"></dd></div><div><dt>Электронная почта</dt><dd th:text="${client.email == null ? 'Не указана' : client.email}"></dd></div></dl></div></section>
+    <section th:replace="~{fragments/ui :: accountPreview(${clientAccounts}, @{/my/accounts}, ${null})}"></section>
+    <p class="form-hint">Для изменения реквизитов обратитесь к оператору.</p>
+</main></div></body></html>

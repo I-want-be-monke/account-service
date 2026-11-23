@@ -23,6 +23,7 @@ import ru.tsu.accounts.audit.RequestIdFilter;
 import ru.tsu.accounts.client.ClientForm;
 import ru.tsu.accounts.client.ClientService;
 import ru.tsu.accounts.client.ClientStatusConfirmation;
+import ru.tsu.accounts.account.AccountService;
 import ru.tsu.accounts.identity.UserCommandException;
 import ru.tsu.accounts.security.AccountPrincipal;
 
@@ -34,9 +35,11 @@ public class ClientController {
     private final ClientService clients;
     private final ClientStatusConfirmation confirmations;
     private final AuditAttemptService attempts;
+    private final AccountService accounts;
     public ClientController(ClientService clients, ClientStatusConfirmation confirmations,
-                            AuditAttemptService attempts) {
+                            AuditAttemptService attempts, AccountService accounts) {
         this.clients = clients; this.confirmations = confirmations; this.attempts = attempts;
+        this.accounts = accounts;
     }
     @GetMapping
     public String list(@RequestParam(defaultValue = "") String name,
@@ -80,6 +83,7 @@ public class ClientController {
     @GetMapping("/{id}")
     public String detail(@PathVariable UUID id, @AuthenticationPrincipal AccountPrincipal actor, Model model) {
         model.addAttribute("client", clients.get(id));
+        model.addAttribute("clientAccounts", accounts.search("", "", id, 0));
         model.addAttribute("isOperator", actor.role().equals("OPERATOR"));
         return "clients/detail";
     }
@@ -112,6 +116,7 @@ public class ClientController {
     @PreAuthorize("hasRole('OPERATOR')")
     public String statusPage(@PathVariable UUID id, Model model) {
         model.addAttribute("client", clients.get(id));
+        model.addAttribute("reason", "");
         return "clients/status";
     }
     @PostMapping("/{id}/status")
@@ -127,6 +132,7 @@ public class ClientController {
         } catch (UserCommandException e) {
             response.setStatus(e.status().value()); model.addAttribute("formError", e.getMessage());
             model.addAttribute("client", clients.get(id));
+            model.addAttribute("reason", reason);
             denied(actor, request, "CLIENT_STATUS_DENIED", id, e);
             return "clients/status";
         }

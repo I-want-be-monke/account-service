@@ -1,4 +1,14 @@
-<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Статус клиента</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="wide"><nav><a th:href="@{/clients/{id}(id=${client.id})}">К карточке</a></nav><h1>Изменение статуса клиента</h1><p th:text="${client.displayName}"></p><p class="alert" th:if="${formError}" th:text="${formError}"></p>
-<form method="post" th:action="@{/clients/{id}/status(id=${client.id})}"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input type="hidden" name="version" th:value="${client.version}">
-<label>Новый статус<select name="status" required><option th:if="${client.status == 'ACTIVE'}" value="ARCHIVED">В архив</option><option th:if="${client.status == 'ARCHIVED'}" value="ACTIVE">Восстановить</option></select></label>
-<label>Причина<input name="reason" required maxlength="500"></label><button type="submit">Продолжить</button></form></main></body></html>
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Статус клиента', false)}"></head>
+<body><div th:replace="~{fragments/layout :: shell('Статус клиента', 'clients', ~{::main})}"><main id="main-content" class="page-content">
+
+    <div class="page-heading"><div><h1>Изменение статуса клиента</h1><p class="text-secondary" th:text="${client.displayName}"></p></div><a class="btn btn-outline-secondary" th:href="@{/clients/{id}(id=${client.id})}">К карточке</a></div>
+    <div class="alert alert-danger" role="alert" th:if="${formError}" th:text="${formError}"></div>
+    <section class="card form-card"><div class="card-body"><dl class="details-list"><div><dt>Текущий статус</dt><dd><span class="status-pill" th:attr="data-status=${client.status}" th:text="${@ui.status(client.status)}"></span></dd></div></dl>
+        <form method="post" th:action="@{/clients/{id}/status(id=${client.id})}"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input type="hidden" name="version" th:value="${client.version}">
+            <div class="form-grid"><div class="form-field"><label class="form-label" for="status">Новый статус</label><select class="form-select" id="status" name="status" required><option th:if="${client.status == 'ACTIVE'}" value="ARCHIVED">В архив</option><option th:if="${client.status == 'ARCHIVED'}" value="ACTIVE">Восстановить</option></select></div><div class="form-field"><label class="form-label" for="reason">Причина</label><input class="form-control" id="reason" name="reason" th:value="${reason}" required maxlength="500" placeholder="Укажите причину изменения"></div></div>
+            <div class="action-bar form-actions"><button class="btn btn-primary" type="submit">Продолжить</button><a class="btn btn-outline-secondary" th:href="@{/clients/{id}(id=${client.id})}">Отмена</a></div>
+        </form>
+    </div></section>
+</main></div></body></html>

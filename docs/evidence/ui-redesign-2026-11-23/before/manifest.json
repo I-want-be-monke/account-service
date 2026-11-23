@@ -1,0 +1,125 @@
+{
+  "origin": "https://localhost:18450",
+  "capturedAt": "2026-11-23T18:35:26.787Z",
+  "pages": [
+    {
+      "name": "login",
+      "route": "/login",
+      "title": "Вход — Лицевые счета",
+      "viewport": {
+        "height": 691,
+        "width": 1422
+      }
+    },
+    {
+      "name": "home-admin",
+      "route": "/",
+      "title": "Главная — Лицевые счета",
+      "viewport": {
+        "height": 691,
+        "width": 1422
+      }
+    },
+    {
+      "name": "home-operator",
+      "route": "/",
+      "title": "Главная — Лицевые счета",
+      "viewport": {
+        "height": 691,
+        "width": 1422
+      }
+    },
+    {
+      "name": "client-list",
+      "route": "/clients",
+      "title": "Клиенты",
+      "viewport": {
+        "height": 691,
+        "width": 1422
+      }
+    },
+    {
+      "name": "client-card",
+      "route": "/clients/6f573f6c-93a2-43a3-85fe-0db52982fb98",
+      "title": "Карточка клиента",
+      "viewport": {
+        "height": 691,
+        "width": 1422
+      }
+    },
+    {
+      "name": "account-card",
+      "route": "/accounts/6a2b97ba-35a4-4c22-a784-2110388485f1",
+      "title": "Лицевой счёт",
+      "viewport": {
+        "height": 691,
+        "width": 1422
+      }
+    },
+    {
+      "name": "home-accountant",
+      "route": "/",
+      "title": "Главная — Лицевые счета",
+      "viewport": {
+        "height": 691,
+        "width": 1422
+      }
+    },
+    {
+      "name": "history",
+      "route": "/accounts/6a2b97ba-35a4-4c22-a784-2110388485f1/operations",
+      "title": "История операций",
+      "viewport": {
+        "height": 691,
+        "width": 1422
+      }
+    },
+    {
+      "name": "statement",
+      "route": "/accounts/6a2b97ba-35a4-4c22-a784-2110388485f1/statement/result?from=2026-11-23&to=2026-11-23",
+      "title": "Выписка по лицевому счёту",
+      "viewport": {
+        "height": 691,
+        "width": 1422
+      }
+    },
+    {
+      "name": "home-manager",
+      "route": "/",
+      "title": "Главная — Лицевые счета",
+      "viewport": {
+        "height": 691,
+        "width": 1422
+      }
+    },
+    {
+      "name": "report-parameters",
+      "route": "/reports?type=MOVEMENT",
+      "title": "Финансовые отчёты",
+      "viewport": {
+        "height": 691,
+        "width": 1422
+      }
+    },
+    {
+      "name": "report-result",
+      "route": "/reports/result?type=MOVEMENT&from=2026-11-23&to=2026-11-23&clientId=6f573f6c-93a2-43a3-85fe-0db52982fb98",
+      "title": "Движение по счетам за период",
+      "viewport": {
+        "height": 691,
+        "width": 1422
+      }
+    },
+    {
+      "name": "home-client",
+      "route": "/",
+      "title": "Главная — Лицевые счета",
+      "viewport": {
+        "height": 691,
+        "width": 1422
+      }
+    }
+  ],
+  "browserVersion": "157.0.8103.38",
+  "status": "PASS"
+}

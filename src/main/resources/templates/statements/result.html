@@ -1,54 +1,43 @@
 <!doctype html>
 <html lang="ru" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Выписка по лицевому счёту</title>
-<link rel="stylesheet" th:href="@{/css/app.css}"><link rel="stylesheet" th:href="@{/css/print.css}">
-<script defer th:src="@{/js/statement.js}"></script></head>
-<body><main class="wide statement-document" th:classappend="${printView ? 'print-preview' : ''}">
-<nav class="no-print"><a th:href="@{/accounts/{id}(id=${statement.accountId})}">← Счёт</a>
-<a th:href="@{/accounts/{id}/statement(id=${statement.accountId},from=${statement.from},to=${statement.to})}">Изменить период</a>
-<a th:href="@{/}">Главная</a></nav>
-<h1>Выписка по лицевому счёту <span th:text="${statement.accountNumber}"></span></h1>
-<p class="hint no-print" th:if="${printView}">Печатное представление. Кнопка «Печать» откроет стандартное окно печати браузера; навигация и кнопки в документ не попадут.</p>
-<dl class="statement-details">
-<dt>UUID счёта</dt><dd th:text="${statement.accountId}"></dd>
-<dt>Владелец</dt><dd th:text="${statement.ownerName}"></dd>
-<dt>Статус счёта</dt><dd th:text="${statement.accountStatus == 'OPEN' ? 'Открыт' : (statement.accountStatus == 'SUSPENDED' ? 'Приостановлен' : 'Закрыт')}"></dd>
-<dt>Период включительно</dt><dd><span th:text="${statement.from}"></span> — <span th:text="${statement.to}"></span></dd>
-<dt>Начало истории</dt><dd th:text="${statement.historyStartOn}"></dd>
-<dt>Сформировано (UTC)</dt><dd th:text="${statement.generatedAt}"></dd>
-<dt>Валюта</dt><dd th:text="${statement.currency}"></dd>
-<dt>Входящее сальдо, ₽</dt><dd><strong id="opening-balance" th:text="${statement.openingBalance}"></strong></dd>
-</dl>
-<div class="statement-actions no-print">
-<a th:unless="${printView}" th:href="@{/accounts/{id}/statement/print(id=${statement.accountId},from=${statement.from},to=${statement.to})}">Печатное представление</a>
-<button type="button" id="print-statement">Печать</button>
-<a th:href="@{/accounts/{id}/statement.csv(id=${statement.accountId},from=${statement.from},to=${statement.to})}">Скачать CSV</a>
-<a th:href="@{/api/v1/accounts/{id}/statement(id=${statement.accountId},from=${statement.from},to=${statement.to})}">Получить JSON</a>
-</div>
-<h2>Проведённые движения</h2>
-<div class="table-wrap" tabindex="0" role="region" aria-label="Таблица проведённых движений"><table class="statement-table">
-<thead><tr><th>Дата / вид</th><th>Документ / связь</th><th>Основание / причина</th><th class="money">Сумма, ₽</th><th class="money">Влияние на сальдо, ₽</th><th class="money">Остаток после строки, ₽</th></tr></thead>
-<tbody>
-<tr th:each="o : ${statement.operations}" th:attr="data-operation-id=${o.id}">
-<td><span th:text="${o.date}"></span><br><span th:text="${o.kind == 'CHARGE' ? 'Начисление' : (o.kind == 'PAYMENT' ? 'Платёж' : 'Исправление')}"></span>
-<br><small th:text="${o.status == 'CORRECTED' ? 'Исправлено' : 'Проведено'}"></small></td>
-<td><span th:text="${o.documentNumber == null ? 'Без номера' : o.documentNumber}"></span>
-<br><small>UUID: <span th:text="${o.id}"></span></small>
-<div th:if="${o.periodStart != null}"><small>Расчётный месяц: <span th:text="${o.periodStart}"></span></small></div>
-<div th:if="${o.paymentMethod != null}"><small th:text="${o.paymentMethod == 'MANUAL_TRANSFER' ? 'Ручной перевод' : 'Регистрация наличного платежа'}"></small></div>
-<div th:if="${o.originalOperationId != null}"><small>Исходная операция: <span th:text="${o.originalOperationId}"></span></small>
-<br><small>Целевая сумма: <span th:text="${o.targetAmount}"></span> ₽</small></div></td>
-<td class="statement-text"><span th:text="${o.basis}"></span><div th:if="${o.correctionReason != null}"><strong>Причина:</strong> <span th:text="${o.correctionReason}"></span></div></td>
-<td class="money" th:text="${o.amount}"></td><td class="money" th:text="${o.delta}"></td><td class="money" th:text="${o.balanceAfter}"></td>
-</tr>
-<tr th:if="${statement.operations.empty}"><td colspan="6">За выбранный период проведённых движений нет.</td></tr>
-</tbody></table></div>
-<p>Число движений: <span id="operation-count" th:text="${statement.operations.size()}"></span>.</p>
-<dl class="statement-totals">
-<dt>Оборот увеличения задолженности, ₽</dt><dd id="increase" th:text="${statement.increase}"></dd>
-<dt>Оборот уменьшения задолженности, ₽</dt><dd id="decrease" th:text="${statement.decrease}"></dd>
-<dt>Исходящее сальдо, ₽</dt><dd><strong id="closing-balance" th:text="${statement.closingBalance}"></strong></dd>
-</dl>
-<p class="hint">Положительное сальдо — задолженность, отрицательное — переплата. Исходящее сальдо = входящее + увеличение − уменьшение. Корректировки учитываются по дате их движения; исходные документы сохраняются.</p>
-</main></body></html>
+<head th:replace="~{fragments/layout :: head('Выписка по лицевому счёту', true)}"></head>
+<body th:replace="~{fragments/layout :: shell('Выписка по счёту', 'statements', ~{::main})}">
+<main id="main-content" class="statement-document" th:classappend="${printView ? 'print-preview' : ''}">
+    <header class="page-header">
+        <div><p class="page-pretitle" th:text="${statement.accountNumber}"></p><h1>Выписка по лицевому счёту</h1><p class="text-secondary" th:text="${statement.ownerName}"></p></div>
+        <div class="page-actions no-print"><a class="btn btn-outline-secondary" th:href="@{/accounts/{id}/statement(id=${statement.accountId},from=${statement.from},to=${statement.to})}">Изменить период</a><a class="btn btn-primary" th:href="@{/accounts/{id}/statement.csv(id=${statement.accountId},from=${statement.from},to=${statement.to})}">Скачать CSV</a><a class="btn btn-outline-secondary" th:unless="${printView}" th:href="@{/accounts/{id}/statement/print(id=${statement.accountId},from=${statement.from},to=${statement.to})}">Версия для печати</a><button class="btn btn-outline-secondary" type="button" id="print-statement">Печать</button></div>
+    </header>
+    <section class="card" aria-label="Сведения о выписке"><div class="card-body"><dl class="document-meta">
+        <dt>Лицевой счёт</dt><dd><a th:href="@{/accounts/{id}(id=${statement.accountId})}" th:text="${statement.accountNumber}"></a></dd><dt>Владелец</dt><dd th:text="${statement.ownerName}"></dd>
+        <dt>Статус счёта</dt><dd><span th:replace="~{fragments/ui :: status(${statement.accountStatus})}"></span></dd>
+        <dt>Период</dt><dd><span th:text="${@ui.date(statement.from)}"></span> — <span th:text="${@ui.date(statement.to)}"></span></dd><dt>Начало истории</dt><dd th:text="${@ui.date(statement.historyStartOn)}"></dd><dt>Сформировано</dt><dd th:text="${@ui.date(statement.generatedAt)}"></dd>
+    </dl></div></section>
+    <section class="stats-grid" aria-label="Итоги выписки в рублях">
+        <div class="card stat-card"><div class="card-body"><div class="stat-label">Входящее сальдо</div><div class="stat-value money" id="opening-balance" th:attr="data-value=${statement.openingBalance}" th:text="${@ui.money(statement.openingBalance)}"></div></div></div>
+        <div class="card stat-card"><div class="card-body"><div class="stat-label">Увеличение задолженности</div><div class="stat-value money" id="increase" th:attr="data-value=${statement.increase}" th:text="${@ui.money(statement.increase)}"></div></div></div>
+        <div class="card stat-card"><div class="card-body"><div class="stat-label">Уменьшение задолженности</div><div class="stat-value money" id="decrease" th:attr="data-value=${statement.decrease}" th:text="${@ui.money(statement.decrease)}"></div></div></div>
+        <div class="card stat-card"><div class="card-body"><div class="stat-label">Исходящее сальдо</div><div class="stat-value money" id="closing-balance" th:attr="data-value=${statement.closingBalance}" th:text="${@ui.money(statement.closingBalance)}"></div></div></div>
+    </section>
+    <p class="form-hint">Положительное сальдо означает задолженность, отрицательное — переплату. Корректировки учитываются по дате движения и сохраняют связь с исходным документом.</p>
+    <section class="card" aria-labelledby="statement-operations-title">
+        <div class="card-header"><h2 class="card-title" id="statement-operations-title">Проведённые движения</h2><span class="text-secondary">Всего <span id="operation-count" th:text="${statement.operations.size()}"></span></span></div>
+        <div class="table-wrap table-responsive" tabindex="0" role="region" aria-label="Таблица проведённых движений"><table class="table table-vcenter statement-table">
+            <caption class="visually-hidden">Проведённые движения за период выписки, суммы в рублях</caption>
+            <thead><tr><th scope="col">Дата и вид</th><th scope="col">Документ</th><th scope="col">Основание</th><th scope="col" class="money">Сумма, ₽</th><th scope="col" class="money">Изменение сальдо, ₽</th><th scope="col" class="money">Остаток, ₽</th></tr></thead>
+            <tbody>
+                <tr th:each="o : ${statement.operations}" th:attr="data-operation-id=${o.id}">
+                    <td><div class="text-nowrap" th:text="${@ui.date(o.date)}"></div><div th:text="${o.kind == 'CHARGE' ? 'Начисление' : (o.kind == 'PAYMENT' ? 'Платёж' : 'Корректировка')}"></div><span th:replace="~{fragments/ui :: status(${o.status})}"></span></td>
+                    <td><strong th:text="${o.documentNumber == null ? 'Без номера' : o.documentNumber}"></strong><div class="text-secondary" th:if="${o.periodStart != null}">Расчётный месяц <span th:text="${@ui.date(o.periodStart)}"></span></div><div class="text-secondary" th:if="${o.paymentMethod != null}" th:text="${o.paymentMethod == 'MANUAL_TRANSFER' ? 'Ручной перевод' : 'Наличный платёж'}"></div><div th:if="${o.originalOperationId != null}">Целевая сумма <span class="money" th:text="${@ui.money(o.targetAmount)}"></span></div>
+                        <details class="technical-details no-print"><summary>Реквизиты операции</summary><dl><dt>Идентификатор</dt><dd th:text="${o.id}"></dd><th:block th:if="${o.originalOperationId != null}"><dt>Исходная операция</dt><dd th:text="${o.originalOperationId}"></dd></th:block></dl></details>
+                    </td>
+                    <td class="statement-text"><span th:text="${o.basis}"></span><div th:if="${o.correctionReason != null}"><strong>Причина корректировки</strong><div th:text="${o.correctionReason}"></div></div></td>
+                    <td class="money" th:attr="data-value=${o.amount}" th:text="${@ui.money(o.amount)}"></td><td class="money" th:attr="data-value=${o.delta}" th:text="${@ui.money(o.delta)}"></td><td class="money" th:attr="data-value=${o.balanceAfter}" th:text="${@ui.money(o.balanceAfter)}"></td>
+                </tr>
+                <tr th:if="${statement.operations.empty}"><td colspan="6" class="empty-state"><h3>За этот период движений нет</h3><p>Входящее и исходящее сальдо учитывают доступную историю счёта.</p><a class="btn btn-outline-primary no-print" th:href="@{/accounts/{id}/statement(id=${statement.accountId})}">Выбрать другой период</a></td></tr>
+            </tbody>
+        </table></div>
+    </section>
+    <details class="technical-details no-print"><summary>Для интеграции</summary><p><a th:href="@{/api/v1/accounts/{id}/statement(id=${statement.accountId},from=${statement.from},to=${statement.to})}">Получить данные выписки в JSON</a></p></details>
+</main>
+</body>
+</html>

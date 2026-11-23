@@ -38,7 +38,8 @@ public class SecurityConfig {
         http.userDetailsService(userDetailsService)
             .requiresChannel(channel -> channel.anyRequest().requiresSecure())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login", "/css/**", "/actuator/health", "/actuator/health/**").permitAll()
+                .requestMatchers("/login", "/css/**", "/js/**", "/vendor/**", "/icons/**", "/actuator/health", "/actuator/health/**").permitAll()
+                .requestMatchers("/ui/clients/search").hasAnyRole("ADMIN", "OPERATOR", "ACCOUNTANT", "MANAGER")
                 .requestMatchers("/actuator/metrics", "/actuator/metrics/**").hasRole("ADMIN")
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/audit/**", "/audit").hasAnyRole("ADMIN", "MANAGER")
@@ -61,7 +62,7 @@ public class SecurityConfig {
                 .invalidateHttpSession(true).deleteCookies("ACCOUNT_SESSION"))
             .sessionManagement(session -> session.sessionFixation(fixation -> fixation.changeSessionId()))
             .headers(headers -> headers.contentSecurityPolicy(csp -> csp.policyDirectives(
-                "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'")))
+                "default-src 'self'; img-src 'self' data:; base-uri 'self'; frame-ancestors 'none'; form-action 'self'")))
             .addFilterAfter(new CurrentUserFilter(users, attempts, accessHandler), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
